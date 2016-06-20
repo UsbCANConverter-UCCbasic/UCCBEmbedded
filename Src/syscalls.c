@@ -74,7 +74,7 @@ extern UART_HandleTypeDef huart2;
 int _write(int32_t file, uint8_t *ptr, int32_t len)
 {
 	HAL_UART_Transmit(&huart2,ptr,len,100);
-	//CDC_Transmit_FS(ptr,len);
+	CDC_Transmit_FS(ptr,len);
 	/* Implement your write code here, this is used by puts and printf for example */
 	return len;
 }

@@ -67,6 +67,16 @@ static void MX_USART2_UART_Init(void);
  CanRxMsgTypeDef CanRxBuffer;
 
  slcan_canmsg_t canframe;
+
+// typedef union tcanRxFlags
+// {
+//	 struct {
+//		 uint8_t fifo1 : 1;
+//		 uint8_t fifo2 : 1;
+//	 };
+//	 uint8_t byte;
+// } canRxFlags;
+
 /* USER CODE END 0 */
 
 int main(void)
@@ -100,25 +110,54 @@ int main(void)
   hcan.pTxMsg = &CanTxBuffer;
   hcan.pRxMsg = &CanRxBuffer;
 
+  // RX init
+  {
+		CAN_FilterConfTypeDef sFilterConfig;
+		sFilterConfig.FilterNumber=0;
+		sFilterConfig.FilterMode=CAN_FILTERMODE_IDMASK;
+		sFilterConfig.FilterScale=CAN_FILTERSCALE_32BIT;
+		sFilterConfig.FilterIdHigh=0x0000;
+		sFilterConfig.FilterIdLow=0x0000;
+		sFilterConfig.FilterMaskIdHigh=0x0000;
+		sFilterConfig.FilterMaskIdLow=0x0000;
+		sFilterConfig.FilterFIFOAssignment=0;
+		sFilterConfig.FilterActivation=ENABLE;
+		sFilterConfig.BankNumber=0;
+
+		if(HAL_CAN_ConfigFilter(&hcan, &sFilterConfig)!=HAL_OK)
+		return HAL_ERROR;
+
+		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
+		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
+   }
+  	//
+
+  HAL_CAN_Receive_IT(&hcan,CAN_FIFO0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  volatile HAL_StatusTypeDef a;
-	 // slcanReciveCanFrame();
+//	  while (CANFrameCounter - localCANFrameCounter)
+//	  {
+//
+//		  if ()
+//		  {
+//		  		  // overrun error
+//		  } else
+//		  {
+//
+//			  slcanReciveCanFrame();
+//			  localCANFrameCounter ++;
+//		  }
+//	  }
+	  //	  volatile HAL_StatusTypeDef a;
+	  //	  slcanReciveCanFrame();
 
-	  uint8_t data[] = {"abcdef\n\r"};
-	  HAL_Delay(500);
-	  CDC_Transmit_FS(data, sizeof(data) -1);
-//	  printf("jest super \n\r");
-//	  if (HAL_CAN_GetState(&hcan) == HAL_CAN_STATE_READY)
-	  {
-//		  hcan.State = HAL_CAN_STATE_READY; to nic nie da bo jeszcze jakies mailboxy sa, cuda dziwy
-		  a = slcanSendCanFrame(&canframe);
-		  a = a;
-	  }
+	  //	  HAL_Delay(500);
+	  //	  a = slcanSendCanFrame(&canframe);
+	  //	  a = a;
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -128,6 +167,12 @@ int main(void)
 
 }
 
+
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan)
+{
+
+    HAL_CAN_Receive_IT(hcan,CAN_FIFO0);
+}
 /** System Clock Configuration
 */
 void SystemClock_Config(void)
@@ -175,11 +220,11 @@ static void MX_CAN_Init(void)
 {
 
   hcan.Instance = CAN;
-  hcan.Init.Prescaler = 16;
+  hcan.Init.Prescaler = 3;
   hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SJW = CAN_SJW_1TQ;
-  hcan.Init.BS1 = CAN_BS1_1TQ;
-  hcan.Init.BS2 = CAN_BS2_1TQ;
+  hcan.Init.SJW = CAN_SJW_2TQ;
+  hcan.Init.BS1 = CAN_BS1_11TQ;
+  hcan.Init.BS2 = CAN_BS2_4TQ;
   hcan.Init.TTCM = DISABLE;
   hcan.Init.ABOM = DISABLE;
   hcan.Init.AWUM = DISABLE;

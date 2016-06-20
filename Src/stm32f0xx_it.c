@@ -112,6 +112,10 @@ void USB_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-
+extern CAN_HandleTypeDef hcan;
+void CEC_CAN_IRQHandler(void)
+{
+	HAL_CAN_IRQHandler(&hcan);
+}
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

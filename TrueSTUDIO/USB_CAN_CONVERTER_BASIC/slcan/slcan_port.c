@@ -14,8 +14,6 @@
 #include "usbd_cdc_if.h"
 
 
-extern CAN_HandleTypeDef hcan;
-
 void slcanSetCANBaudRate(uint8_t br)
 {
 
@@ -44,6 +42,7 @@ void slCanProccesInput(uint8_t ch)
 }
 
 
+extern CAN_HandleTypeDef hcan;
 /* sending CAN frame - used by slcan_interface*/
 uint8_t slcanSendCanFrame(slcan_canmsg_t* canmsg)
 {
@@ -60,37 +59,34 @@ uint8_t slcanSendCanFrame(slcan_canmsg_t* canmsg)
 	hcan.pTxMsg->RTR = canmsg->flags.rtr;
 	memcpy(hcan.pTxMsg->Data,canmsg->data,canmsg->dlc);
 
-	return HAL_CAN_Transmit(&hcan, 100);
+	return HAL_CAN_Transmit(&hcan, 1000);
 }
 
 /* reciving CAN frame - called in main aplication*/
 void  slcanReciveCanFrame()
 {
-	if (HAL_CAN_Receive_IT(&hcan, CAN_FIFO0) != HAL_OK)
+	slcan_canmsg_t canmsg;
+	uint8_t step = RX_STEP_TYPE;
+
+	canmsg.dlc = hcan.pRxMsg->DLC;
+	if (hcan.pRxMsg->IDE == CAN_ID_EXT)
 	{
-		slcan_canmsg_t canmsg;
-		uint8_t step = RX_STEP_TYPE;
+		canmsg.id = hcan.pRxMsg->ExtId;
+		canmsg.flags.extended = 1;
+	} else
+	{
+		canmsg.id = hcan.pRxMsg->StdId;
+		canmsg.flags.extended = 0;
+	}
+	canmsg.flags.rtr = (hcan.pRxMsg->RTR == CAN_RTR_REMOTE) ? 1 : 0;
 
-		canmsg.dlc = hcan.pRxMsg->DLC;
-		if (hcan.pRxMsg->IDE == CAN_ID_EXT)
-		{
-			canmsg.id = hcan.pRxMsg->ExtId;
-			canmsg.flags.extended = 1;
-		} else
-		{
-			canmsg.id = hcan.pRxMsg->StdId;
-			canmsg.flags.extended = 0;
-		}
-		canmsg.flags.rtr = (hcan.pRxMsg->RTR == CAN_RTR_REMOTE) ? 1 : 0;
+	// canmsg.timestamp
+	memcpy(canmsg.data, hcan.pRxMsg->Data, canmsg.dlc);
 
-		// canmsg.timestamp
-		memcpy(canmsg.data, hcan.pRxMsg->Data, canmsg.dlc);
+	slcanSetOutputChar(slCanCanmsg2asciiGetNextChar(&canmsg, &step));
 
-		slcanSetOutputChar(slCanCanmsg2asciiGetNextChar(&canmsg, &step));
-
-		if (step == RX_STEP_FINISHED)
-		{
-			step = RX_STEP_TYPE;
-		}
+	if (step == RX_STEP_FINISHED)
+	{
+		step = RX_STEP_TYPE;
 	}
 }
