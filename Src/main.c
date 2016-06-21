@@ -68,15 +68,19 @@ static void MX_USART2_UART_Init(void);
 
  slcan_canmsg_t canframe;
 
-// typedef union tcanRxFlags
-// {
-//	 struct {
-//		 uint8_t fifo1 : 1;
-//		 uint8_t fifo2 : 1;
-//	 };
-//	 uint8_t byte;
-// } canRxFlags;
+ typedef struct tcanRxFlags{
+	 union
+	 {
+		 struct {
+			 uint8_t fifo1 : 1;
+			 uint8_t fifo2 : 1;
+		 };
+		 uint8_t byte;
+	 }flags;
+	 uint8_t activefifo;
+ } tcanRx;
 
+ volatile tcanRx canRxFlags;
 /* USER CODE END 0 */
 
 int main(void)
@@ -110,6 +114,7 @@ int main(void)
   hcan.pTxMsg = &CanTxBuffer;
   hcan.pRxMsg = &CanRxBuffer;
 
+  canRxFlags.flags.byte = 0;
   // RX init
   {
 		CAN_FilterConfTypeDef sFilterConfig;
@@ -139,25 +144,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  while (CANFrameCounter - localCANFrameCounter)
-//	  {
-//
-//		  if ()
-//		  {
-//		  		  // overrun error
-//		  } else
-//		  {
-//
-//			  slcanReciveCanFrame();
-//			  localCANFrameCounter ++;
-//		  }
-//	  }
+	  if (canRxFlags.flags.byte != 0)
+	  {
+		  slcanReciveCanFrame(hcan.pRxMsg);
+		  HAL_CAN_Receive_IT(&hcan,CAN_FIFO0);
+		  canRxFlags.flags.fifo1 = 0;
+	  }
+
 	  //	  volatile HAL_StatusTypeDef a;
 	  //	  slcanReciveCanFrame();
-
 	  //	  HAL_Delay(500);
 	  //	  a = slcanSendCanFrame(&canframe);
-	  //	  a = a;
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -170,8 +167,8 @@ int main(void)
 
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan)
 {
-
-    HAL_CAN_Receive_IT(hcan,CAN_FIFO0);
+	canRxFlags.flags.fifo1 = 1;
+//    HAL_CAN_Receive_IT(hcan,CAN_FIFO0);
 }
 /** System Clock Configuration
 */
