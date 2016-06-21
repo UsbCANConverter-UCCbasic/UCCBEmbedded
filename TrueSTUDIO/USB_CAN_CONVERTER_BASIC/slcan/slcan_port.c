@@ -18,11 +18,24 @@ void slcanSetCANBaudRate(uint8_t br)
 {
 
 }
+void slcanSendAsHex(uint8_t ch)
+{
+	uint8_t chl = ch & 0x0F;
+	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
 
+	uint8_t chh = ch >> 4;
+	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
+
+	slcanSetOutputChar(chh);
+	slcanSetOutputChar(chl);
+
+}
 /* send  UART input - used by slcan_interface*/
+extern UART_HandleTypeDef huart2;
 void slcanSetOutputChar(uint8_t c)
 {
 	CDC_Transmit_FS(&c, 1);
+	HAL_UART_Transmit(&huart2,&c,1,100);
 }
 
 /* reciving UART input - used in main application*/
@@ -60,33 +73,4 @@ uint8_t slcanSendCanFrame(slcan_canmsg_t* canmsg)
 	memcpy(hcan.pTxMsg->Data,canmsg->data,canmsg->dlc);
 
 	return HAL_CAN_Transmit(&hcan, 1000);
-}
-
-/* reciving CAN frame - called in main aplication*/
-void  slcanReciveCanFrame()
-{
-	slcan_canmsg_t canmsg;
-	uint8_t step = RX_STEP_TYPE;
-
-	canmsg.dlc = hcan.pRxMsg->DLC;
-	if (hcan.pRxMsg->IDE == CAN_ID_EXT)
-	{
-		canmsg.id = hcan.pRxMsg->ExtId;
-		canmsg.flags.extended = 1;
-	} else
-	{
-		canmsg.id = hcan.pRxMsg->StdId;
-		canmsg.flags.extended = 0;
-	}
-	canmsg.flags.rtr = (hcan.pRxMsg->RTR == CAN_RTR_REMOTE) ? 1 : 0;
-
-	// canmsg.timestamp
-	memcpy(canmsg.data, hcan.pRxMsg->Data, canmsg.dlc);
-
-	slcanSetOutputChar(slCanCanmsg2asciiGetNextChar(&canmsg, &step));
-
-	if (step == RX_STEP_FINISHED)
-	{
-		step = RX_STEP_TYPE;
-	}
 }

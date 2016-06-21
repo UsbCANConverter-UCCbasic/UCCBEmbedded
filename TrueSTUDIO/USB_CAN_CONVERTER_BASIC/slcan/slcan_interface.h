@@ -34,6 +34,8 @@
 #define SLCAN_LR 10
 
 #include "stdint.h"
+#include "stm32f0xx_hal.h"
+#include "stm32f0xx_hal_can.h"
 
 typedef struct
 {
@@ -49,6 +51,7 @@ typedef struct
 } slcan_canmsg_t;
 
 void slcanProccessInput(uint8_t* line);
-char slCanCanmsg2asciiGetNextChar(slcan_canmsg_t * canmsg, uint8_t * step);
+char slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
+void slcanSendAsHex(uint8_t ch);
 
 #endif /* SLCAN_INTERFACE_H_ */

@@ -31,3 +31,8 @@
 # Debug files
 *.dSYM/
 *.su
+*.map
+TrueSTUDIO/USB_CAN_CONVERTER_BASIC/Debug/USB_CAN_CONVERTER_BASIC.elf.list
+TrueSTUDIO/USB_CAN_CONVERTER_BASIC/.settings/com.atollic.truestudio.debug.hardware_device.prefs
+TrueSTUDIO/USB_CAN_CONVERTER_BASIC/.settings/language.settings.xml
+.mxproject

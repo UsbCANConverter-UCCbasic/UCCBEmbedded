@@ -321,95 +321,56 @@ void slcanProccessInput(uint8_t* line)
 }
 
 /**
- * Get next character of given can message in ascii format
+ *  reciving CAN frame - called in main aplication
  *
  * @param canmsg Pointer to can message
  * @param step Current step
  * @return Next character to print out
  */
-char slCanCanmsg2asciiGetNextChar(slcan_canmsg_t * canmsg, uint8_t * step) {
+char slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
 
-    char ch = SLCAN_BELL;
-    uint8_t newstep = *step;
-
-    if (*step == RX_STEP_TYPE) {
-
-            // type
-
-            if (canmsg->flags.extended) {
-                newstep = RX_STEP_ID_EXT;
-                if (canmsg->flags.rtr) ch = 'R';
-                else ch = 'T';
-            } else {
-                newstep = RX_STEP_ID_STD;
-                if (canmsg->flags.rtr) ch = 'r';
-                else ch = 't';
-            }
-
-    } else if (*step < RX_STEP_DLC) {
-
+	uint32_t id;
+	uint8_t i;
+	// type
+	if (pRxMsg->ExtId == CAN_ID_EXT) {
+		if (pRxMsg->RTR == CAN_RTR_REMOTE)
+		{
+			slcanSetOutputChar('R');
+		}
+		else
+		{
+			slcanSetOutputChar('T');
+		}
+		id = pRxMsg->ExtId;
+	} else
+	{
+		if (pRxMsg->RTR == CAN_RTR_REMOTE)
+		{
+			slcanSetOutputChar('r');
+		}
+		else
+		{
+			slcanSetOutputChar('t');
+		}
+		id = pRxMsg->StdId;
+	}
 	// id
-
-        unsigned char i = *step - 1;
-        unsigned char * id_bp = (unsigned char*) &canmsg->id;
-        ch = id_bp[3 - (i / 2)];
-        if ((i % 2) == 0) ch = ch >> 4;
-
-        ch = ch & 0xF;
-        if (ch > 9) ch = ch - 10 + 'A';
-        else ch = ch + '0';
-
-        newstep++;
-
-    } else if (*step < RX_STEP_DATA) {
-
+	uint8_t* id_bp = (uint8_t*) &id;
+	for (i = 4; i != 0; i--)
+	{
+		slcanSendAsHex(id_bp[i - 1]);
+	}
 	// length
+	slcanSendAsHex(pRxMsg->DLC);
 
-        ch = canmsg->dlc;
+	//data
+	if ((pRxMsg->DLC > 0) && (pRxMsg->RTR != CAN_RTR_REMOTE))
+	{
+		for (i = 0;  i != pRxMsg->DLC; i ++)
+		{
+			slcanSendAsHex(pRxMsg->Data[i]);
+		}
+	}
+	slcanSetOutputChar(SLCAN_CR);
 
-        ch = ch & 0xF;
-        if (ch > 9) ch = ch - 10 + 'A';
-        else ch = ch + '0';
-
-        if ((canmsg->dlc == 0) || canmsg->flags.rtr) newstep = RX_STEP_TIMESTAMP;
-        else newstep++;
-
-    } else if (*step < RX_STEP_TIMESTAMP) {
-
-        // data
-
-        unsigned char i = *step - RX_STEP_DATA;
-        ch = canmsg->data[i / 2];
-        if ((i % 2) == 0) ch = ch >> 4;
-
-        ch = ch & 0xF;
-        if (ch > 9) ch = ch - 10 + 'A';
-        else ch = ch + '0';
-
-        newstep++;
-        if (newstep - RX_STEP_DATA == canmsg->dlc*2) newstep = RX_STEP_TIMESTAMP;
-
-    } else if (timestamping && (*step < RX_STEP_CR)) {
-
-        // timestamp
-        unsigned char i = *step - RX_STEP_TIMESTAMP;
-        if (i < 2) ch = (canmsg->timestamp >> 8) & 0xff;
-        else ch = canmsg->timestamp & 0xff;
-        if ((i % 2) == 0) ch = ch >> 4;
-
-        ch = ch & 0xF;
-        if (ch > 9) ch = ch - 10 + 'A';
-        else ch = ch + '0';
-
-        newstep++;
-
-    } else {
-
-        // linebreak
-        ch = SLCAN_CR;
-        newstep = RX_STEP_FINISHED;
-    }
-
-    *step = newstep;
-    return ch;
 }

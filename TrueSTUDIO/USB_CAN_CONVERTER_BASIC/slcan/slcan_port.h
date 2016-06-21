@@ -24,7 +24,6 @@ void slcanSetCANBaudRate(uint8_t br);
 void slcanSetOutputChar(uint8_t c);
 void slCanProccesInput(uint8_t ch);
 uint8_t slcanSendCanFrame(slcan_canmsg_t* canmsg);
-void  slcanReciveCanFrame();
 
 
 #endif /* SLCAN_PORT_H_ */
