@@ -18,18 +18,18 @@ void slcanSetCANBaudRate(uint8_t br)
 {
 
 }
-void slcanSendAsHex(uint8_t ch)
-{
-	uint8_t chl = ch & 0x0F;
-	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
-
-	uint8_t chh = ch >> 4;
-	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
-
-	slcanSetOutputChar(chh);
-	slcanSetOutputChar(chl);
-
-}
+//void slcanSendAsHex(uint8_t ch)
+//{
+//	uint8_t chl = ch & 0x0F;
+//	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
+//
+//	uint8_t chh = ch >> 4;
+//	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
+//
+//	slcanSetOutputChar(chh);
+//	slcanSetOutputChar(chl);
+//
+//}
 /* send  UART input - used by slcan_interface*/
 extern UART_HandleTypeDef huart2;
 void slcanSetOutputChar(uint8_t c)
@@ -42,7 +42,7 @@ void slcanSetOutputChar(uint8_t c)
 void slCanProccesInput(uint8_t ch)
 {
 	static uint8_t line[LINE_MAXLEN];
-	uint8_t linepos = 0;
+	static uint8_t linepos = 0;
 
     if (ch == SLCAN_CR) {
         line[linepos] = 0;

@@ -66,6 +66,9 @@ static void MX_USART2_UART_Init(void);
  CanTxMsgTypeDef CanTxBuffer;
  CanRxMsgTypeDef CanRxBuffer;
 
+#define UART_RX_FIFO_SIZE    1
+uint8_t Uart2RxFifo;
+
  slcan_canmsg_t canframe;
 
  typedef struct tcanRxFlags{
@@ -115,7 +118,7 @@ int main(void)
   hcan.pRxMsg = &CanRxBuffer;
 
   canRxFlags.flags.byte = 0;
-  // RX init
+  // CAN RX init
   {
 		CAN_FilterConfTypeDef sFilterConfig;
 		sFilterConfig.FilterNumber=0;
@@ -134,10 +137,19 @@ int main(void)
 
 		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
 		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
-   }
-  	//
 
-  HAL_CAN_Receive_IT(&hcan,CAN_FIFO0);
+		HAL_CAN_Receive_IT(&hcan,CAN_FIFO0);
+   }
+  	// UART RX
+  {
+	  HAL_UART_Receive_IT(&huart2,&Uart2RxFifo,UART_RX_FIFO_SIZE);
+	  HAL_NVIC_SetPriority(USART2_IRQn, 2, 0);
+	  NVIC_EnableIRQ(USART2_IRQn);
+  }
+  /* Enable USART1 global interrupt */
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -238,7 +250,6 @@ static void MX_CAN_Init(void)
 /* USART2 init function */
 static void MX_USART2_UART_Init(void)
 {
-
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -303,6 +314,14 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler */ 
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart)
+{
+	slCanProccesInput(Uart2RxFifo);
+	__HAL_UART_FLUSH_DRREGISTER(huart);
+	HAL_UART_Receive_IT(huart,&Uart2RxFifo,UART_RX_FIFO_SIZE);
+}
+
 
 #ifdef USE_FULL_ASSERT
 

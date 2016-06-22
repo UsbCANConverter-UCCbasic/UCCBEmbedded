@@ -84,19 +84,16 @@ void sendHex(uint32_t value, uint8_t len) {
  *
  * @param value Byte value to send over UART
  */
-void sendByteHex(uint8_t value) {
+void sendByteHex(uint8_t ch) {
 
-//    sendHex(value, 2);
+	uint8_t chl = ch & 0x0F;
+	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
 
-	uint8_t ch = value >> 4;
-    if (ch > 9) ch = ch - 10 + 'A';
-    else ch = ch + '0';
-    slcanSetOutputChar(ch);
+	uint8_t chh = ch >> 4;
+	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
 
-    ch = value & 0xF;
-    if (ch > 9) ch = ch - 10 + 'A';
-    else ch = ch + '0';
-    slcanSetOutputChar(ch);
+	slcanSetOutputChar(chh);
+	slcanSetOutputChar(chl);
 }
 
 
@@ -260,9 +257,9 @@ void slcanProccessInput(uint8_t* line)
         case 'R': // Transmit extended RTR (29 bit) frame
         case 't': // Transmit standard (11 bit) frame
         case 'T': // Transmit extended (29 bit) frame
-            if (state == STATE_OPEN)
+//            if (state == STATE_OPEN)
             {
-                if (transmitStd(line)) {
+                if (transmitStd(line+1)) {
                     if (line[0] < 'Z') slcanSetOutputChar('Z');
                     else slcanSetOutputChar('z');
                     result = SLCAN_CR;
@@ -358,19 +355,19 @@ char slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
 	uint8_t* id_bp = (uint8_t*) &id;
 	for (i = 4; i != 0; i--)
 	{
-		slcanSendAsHex(id_bp[i - 1]);
+		sendByteHex(id_bp[i - 1]);
 	}
 	// length
-	slcanSendAsHex(pRxMsg->DLC);
+	sendByteHex(pRxMsg->DLC);
 
 	//data
 	if ((pRxMsg->DLC > 0) && (pRxMsg->RTR != CAN_RTR_REMOTE))
 	{
 		for (i = 0;  i != pRxMsg->DLC; i ++)
 		{
-			slcanSendAsHex(pRxMsg->Data[i]);
+			sendByteHex(pRxMsg->Data[i]);
 		}
 	}
 	slcanSetOutputChar(SLCAN_CR);
-
+	return 0;
 }

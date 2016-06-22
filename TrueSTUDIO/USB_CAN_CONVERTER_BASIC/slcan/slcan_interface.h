@@ -52,6 +52,5 @@ typedef struct
 
 void slcanProccessInput(uint8_t* line);
 char slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
-void slcanSendAsHex(uint8_t ch);
 
 #endif /* SLCAN_INTERFACE_H_ */
