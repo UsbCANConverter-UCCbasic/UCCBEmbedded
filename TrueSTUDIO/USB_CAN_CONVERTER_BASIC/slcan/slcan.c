@@ -19,6 +19,8 @@
 #define STATE_CONFIG 0
 #define STATE_LISTEN 1
 #define STATE_OPEN 2
+
+uint32_t serialNumber = 0x01040816;
 // internal slcan_interface state
 static uint8_t state = STATE_CONFIG;
 static uint8_t timestamping = 0;
@@ -27,7 +29,7 @@ static void slcanProccessInput(uint8_t* line);
 extern CAN_HandleTypeDef hcan;
 
 void slcanSetCANBaudRate(uint8_t br)
-{
+{ //todo it is for 75% sampling point
 	switch (br)
 	{
 		case CAN_BR_1M:
@@ -60,15 +62,9 @@ void slcanSetCANBaudRate(uint8_t br)
 
 	if (HAL_CAN_Init(&hcan) != HAL_OK)
 	{
-		while (1)
-		{
-
-		}
+		// todo Error handler
 	}
 }
-
-
-
 
 uint8_t sl_frame[32];
 uint8_t sl_frame_len=0;
@@ -87,20 +83,24 @@ static void slcanSetOutputChar(uint8_t c)
 }
 
 /**
+  * @brief  Add given nible value as hexadecimal string to bufferr
+  * @param  c - data to add
+  * @retval None
+  */
+static void slCanSendNibble(uint8_t ch)
+{
+	ch = ch > 9 ? ch - 10 + 'A' : ch + '0';
+	slcanSetOutputChar(ch);
+}
+
+/**
   * @brief  Add given byte value as hexadecimal string to buffer
   * @param  value - data to add
   * @retval None
   */
 static void slcanSetOutputAsHex(uint8_t ch) {
-
-	uint8_t chl = ch & 0x0F;
-	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
-
-	uint8_t chh = ch >> 4;
-	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
-
-	slcanSetOutputChar(chh);
-	slcanSetOutputChar(chl);
+	slCanSendNibble(ch >> 4);
+	slCanSendNibble(ch & 0x0F);
 }
 
 
@@ -283,14 +283,21 @@ static void slcanProccessInput(uint8_t* line)
         case 'N': // Get serial number
             {
                 slcanSetOutputChar('N');
-                slcanSetOutputAsHex(1);
+                slcanSetOutputAsHex((uint8_t)serialNumber);
+                slcanSetOutputAsHex((uint8_t)serialNumber>>8);
+                slcanSetOutputAsHex((uint8_t)serialNumber>>16);
+                slcanSetOutputAsHex((uint8_t)serialNumber>>24);
                 result = SLCAN_CR;
             }
             break;
         case 'O': // Open CAN channel
             if (state == STATE_CONFIG)
             {
-//            	mcp2515_bit_modify(MCP2515_REG_CANCTRL, 0xE0, 0x00); // set normal operating mode
+            	hcan.Init.Mode = CAN_MODE_NORMAL;
+            	if (HAL_CAN_Init(&hcan) != HAL_OK)
+            	{
+            		// todo Error handler
+            	}
 //                clock_reset();
                 state = STATE_OPEN;
                 result = SLCAN_CR;
@@ -299,7 +306,11 @@ static void slcanProccessInput(uint8_t* line)
         case 'l': // Loop-back mode
             if (state == STATE_CONFIG)
             {
-            	//		mcp2515_bit_modify(MCP2515_REG_CANCTRL, 0xE0, 0x40); // set loop-back
+            	hcan.Init.Mode = CAN_MODE_LOOPBACK;
+				if (HAL_CAN_Init(&hcan) != HAL_OK)
+				{
+					// todo Error handler
+				}
                 state = STATE_OPEN;
                 result = SLCAN_CR;
             }
@@ -307,8 +318,11 @@ static void slcanProccessInput(uint8_t* line)
         case 'L': // Open CAN channel in listen-only mode
             if (state == STATE_CONFIG)
             {
-//            	mcp2515_bit_modify(MCP2515_REG_CANCTRL, 0xE0, 0x60); // set listen-only mode
-
+            	hcan.Init.Mode = CAN_MODE_SILENT;
+				if (HAL_CAN_Init(&hcan) != HAL_OK)
+				{
+					// todo Error handler
+				}
                 state = STATE_LISTEN;
                 result = SLCAN_CR;
             }
@@ -317,7 +331,6 @@ static void slcanProccessInput(uint8_t* line)
             if (state != STATE_CONFIG)
             {
 //            	mcp2515_bit_modify(MCP2515_REG_CANCTRL, 0xE0, 0x80); // set configuration mode
-
                 state = STATE_CONFIG;
                 result = SLCAN_CR;
             }
@@ -326,7 +339,7 @@ static void slcanProccessInput(uint8_t* line)
         case 'R': // Transmit extended RTR (29 bit) frame
         case 't': // Transmit standard (11 bit) frame
         case 'T': // Transmit extended (29 bit) frame
-//            if (state == STATE_OPEN)
+//            if (state == STATE_OPEN) todo Przywrocic OPEN
             {
                 if (transmitStd(line+1)) {
                     if (line[0] < 'Z') slcanSetOutputChar('Z');
@@ -365,19 +378,19 @@ static void slcanProccessInput(uint8_t* line)
             {
                 unsigned long am0, am1, am2, am3;
 //                    mcp2515_set_SJA1000_filter_mask(am0, am1, am2, am3);
-                if (parseHex(&line[1], 2, &am0) && parseHex(&line[3], 2, &am1) && parseHex(&line[5], 2, &am2) && parseHex(&line[7], 2, &am3)) {
+//                if (parseHex(&line[1], 2, &am0) && parseHex(&line[3], 2, &am1) && parseHex(&line[5], 2, &am2) && parseHex(&line[7], 2, &am3)) {
                     result = SLCAN_CR;
-                }
+//                }
             }
             break;
          case 'M': // Set accpetance filter code
             if (state == STATE_CONFIG)
             {
                 unsigned long ac0, ac1, ac2, ac3;
-                if (parseHex(&line[1], 2, &ac0) && parseHex(&line[3], 2, &ac1) && parseHex(&line[5], 2, &ac2) && parseHex(&line[7], 2, &ac3)) {
+//                if (parseHex(&line[1], 2, &ac0) && parseHex(&line[3], 2, &ac1) && parseHex(&line[5], 2, &ac2) && parseHex(&line[7], 2, &ac3)) {
 //                    mcp2515_set_SJA1000_filter_code(ac0, ac1, ac2, ac3);
                     result = SLCAN_CR;
-                }
+//                }
             }
             break;
 
@@ -394,11 +407,9 @@ static void slcanProccessInput(uint8_t* line)
  * 			step Current step
  * @retval Next character to print out
  */
-uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
-
-	uint32_t id;
+uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
+{
 	uint8_t i;
-
 
 	// type
 	if (pRxMsg->ExtId == CAN_ID_EXT) {
@@ -410,7 +421,11 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
 		{
 			slcanSetOutputChar('T');
 		}
-		id = pRxMsg->ExtId;
+		// id
+		for (i = 4; i != 0; i--)
+		{
+			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i - 1]);
+		}
 	} else
 	{
 		if (pRxMsg->RTR == CAN_RTR_REMOTE)
@@ -421,16 +436,13 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
 		{
 			slcanSetOutputChar('t');
 		}
-		id = pRxMsg->StdId;
-	}
-	// id
-	uint8_t* id_bp = (uint8_t*) &id;
-	for (i = 4; i != 0; i--)
-	{
-		slcanSetOutputAsHex(id_bp[i - 1]);
+		//id
+		slCanSendNibble(((uint8_t*)&pRxMsg->StdId)[1] & 0x0F);
+		slcanSetOutputAsHex(((uint8_t*)&pRxMsg->StdId)[0]);
+
 	}
 	// length
-	slcanSetOutputAsHex(pRxMsg->DLC);
+	slCanSendNibble(pRxMsg->DLC);
 
 	//data
 	if ((pRxMsg->DLC > 0) && (pRxMsg->RTR != CAN_RTR_REMOTE))

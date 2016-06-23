@@ -13,6 +13,7 @@
 #include "stm32f0xx_hal_can.h"
 
 
+
 #define VERSION_FIRMWARE_MAJOR 2
 #define VERSION_FIRMWARE_MINOR 1
 
