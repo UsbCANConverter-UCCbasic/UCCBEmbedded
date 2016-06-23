@@ -36,7 +36,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
-#include "slcan_port.h"
+#include "slcan.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -53,7 +53,7 @@ UART_HandleTypeDef huart2;
 void SystemClock_Config(void);
 void Error_Handler(void);
 static void MX_GPIO_Init(void);
-static void MX_CAN_Init(void);
+void MX_CAN_Init(void);
 static void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -68,8 +68,7 @@ static void MX_USART2_UART_Init(void);
 
 #define UART_RX_FIFO_SIZE    1
 uint8_t Uart2RxFifo;
-
- slcan_canmsg_t canframe;
+uint8_t USBRxFifo;
 
  typedef struct tcanRxFlags{
 	 union
@@ -103,16 +102,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+
   MX_CAN_Init();
+
   MX_USB_DEVICE_Init();
   MX_USART2_UART_Init();
 
   /* USER CODE BEGIN 2 */
-
-  canframe.id = 50;
-  canframe.dlc = 1;
-  canframe.flags.extended = 0;
-  canframe.data[0] = 0x05;
 
   hcan.pTxMsg = &CanTxBuffer;
   hcan.pRxMsg = &CanRxBuffer;
@@ -143,6 +139,7 @@ int main(void)
   	// UART RX
   {
 	  HAL_UART_Receive_IT(&huart2,&Uart2RxFifo,UART_RX_FIFO_SIZE);
+//	  CDC_Receive_FS(USBRxFifo,1);
 	  HAL_NVIC_SetPriority(USART2_IRQn, 2, 0);
 	  NVIC_EnableIRQ(USART2_IRQn);
   }
@@ -162,15 +159,9 @@ int main(void)
 		  HAL_CAN_Receive_IT(&hcan,CAN_FIFO0);
 		  canRxFlags.flags.fifo1 = 0;
 	  }
-
-	  //	  volatile HAL_StatusTypeDef a;
-	  //	  slcanReciveCanFrame();
-	  //	  HAL_Delay(500);
-	  //	  a = slcanSendCanFrame(&canframe);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-
   }
   /* USER CODE END 3 */
 
@@ -224,27 +215,25 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* CAN init function */
-static void MX_CAN_Init(void)
+/* CAN init function for 48Mhz*/
+void MX_CAN_Init()
 {
-
-  hcan.Instance = CAN;
-  hcan.Init.Prescaler = 3;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SJW = CAN_SJW_2TQ;
-  hcan.Init.BS1 = CAN_BS1_11TQ;
-  hcan.Init.BS2 = CAN_BS2_4TQ;
-  hcan.Init.TTCM = DISABLE;
-  hcan.Init.ABOM = DISABLE;
-  hcan.Init.AWUM = DISABLE;
-  hcan.Init.NART = DISABLE;
-  hcan.Init.RFLM = DISABLE;
-  hcan.Init.TXFP = DISABLE;
-  if (HAL_CAN_Init(&hcan) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
+	hcan.Instance = CAN;
+	hcan.Init.Prescaler = 3;
+	hcan.Init.SJW = CAN_SJW_2TQ;
+	hcan.Init.BS1 = CAN_BS1_11TQ;
+	hcan.Init.BS2 = CAN_BS2_4TQ;
+	hcan.Init.Mode = CAN_MODE_NORMAL;
+	hcan.Init.TTCM = DISABLE;
+	hcan.Init.ABOM = DISABLE;
+	hcan.Init.AWUM = DISABLE;
+	hcan.Init.NART = DISABLE;
+	hcan.Init.RFLM = DISABLE;
+	hcan.Init.TXFP = DISABLE;
+	if (HAL_CAN_Init(&hcan) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 /* USART2 init function */

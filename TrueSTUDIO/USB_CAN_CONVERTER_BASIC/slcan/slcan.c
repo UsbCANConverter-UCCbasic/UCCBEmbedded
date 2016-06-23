@@ -5,9 +5,16 @@
  *      Author: Vostro1440
  */
 
-#include "slcan_interface.h"
-#include "slcan_port.h"
+#include "stm32f0xx_hal.h"
+#include "stm32f0xx_hal_can.h"
+#include "string.h"
+#include "slcan.h"
+#include "usbd_cdc_if.h"
 
+#define LINE_MAXLEN 100
+#define SLCAN_BELL 7
+#define SLCAN_CR 13
+#define SLCAN_LR 10
 
 #define STATE_CONFIG 0
 #define STATE_LISTEN 1
@@ -16,17 +23,129 @@
 static uint8_t state = STATE_CONFIG;
 static uint8_t timestamping = 0;
 
+static void slcanProccessInput(uint8_t* line);
+extern CAN_HandleTypeDef hcan;
+
+void slcanSetCANBaudRate(uint8_t br)
+{
+	switch (br)
+	{
+		case CAN_BR_1M:
+			hcan.Init.Prescaler = 3;
+		break;
+		case CAN_BR_500K:
+			hcan.Init.Prescaler = 6;
+		break;
+		case CAN_BR_250K:
+			hcan.Init.Prescaler = 12;
+		break;
+		case CAN_BR_125K:
+			hcan.Init.Prescaler = 24;
+		break;
+		case CAN_BR_100K:
+			hcan.Init.Prescaler = 30;
+		break;
+		case CAN_BR_50K:
+			hcan.Init.Prescaler = 60;
+		break;
+		case CAN_BR_20K:
+			hcan.Init.Prescaler = 150;
+		break;
+		case CAN_BR_10K:
+			hcan.Init.Prescaler = 300;
+		break;
+		default:
+			break;
+	}
+
+	if (HAL_CAN_Init(&hcan) != HAL_OK)
+	{
+		while (1)
+		{
+
+		}
+	}
+}
+
+
+
+
+uint8_t sl_frame[32];
+uint8_t sl_frame_len=0;
+/**
+  * @brief  Adds data to send buffer
+  * @param  c - data to add
+  * @retval None
+  */
+static void slcanSetOutputChar(uint8_t c)
+{
+	if (sl_frame_len < sizeof(sl_frame))
+	{
+		sl_frame[sl_frame_len] = c;
+		sl_frame_len ++;
+	}
+}
+
+/**
+  * @brief  Add given byte value as hexadecimal string to buffer
+  * @param  value - data to add
+  * @retval None
+  */
+static void slcanSetOutputAsHex(uint8_t ch) {
+
+	uint8_t chl = ch & 0x0F;
+	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
+
+	uint8_t chh = ch >> 4;
+	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
+
+	slcanSetOutputChar(chh);
+	slcanSetOutputChar(chl);
+}
+
+
+extern UART_HandleTypeDef huart2;
+/**
+  * @brief  Flush data on active interface
+  * @param  None
+  * @retval None
+  */
+static void slcanOutputFlush(void)
+{
+	CDC_Transmit_FS(sl_frame, sl_frame_len);
+	HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
+	sl_frame_len = 0;
+}
+
+/**
+  * @brief  Add to input buffer data from interfaces
+  * @param  ch - data to add
+  * @retval None
+  */
+void slCanProccesInput(uint8_t ch)
+{
+	static uint8_t line[LINE_MAXLEN];
+	static uint8_t linepos = 0;
+
+    if (ch == SLCAN_CR) {
+        line[linepos] = 0;
+        slcanProccessInput(line);
+        linepos = 0;
+    } else if (ch != SLCAN_LR) {
+        line[linepos] = ch;
+        if (linepos < LINE_MAXLEN - 1) linepos++;
+    }
+}
 
 
 /**
- * Parse hex value of given string
- *
- * @param line Input string
- * @param len Count of characters to interpret
- * @param value Pointer to variable for the resulting decoded value
- * @return 0 on error, 1 on success
- */
-uint8_t parseHex(uint8_t* line, uint8_t len, uint32_t* value) {
+  * @brief  Parse hex value of given string
+  * @param  canmsg - line Input string
+  * 		len    - of characters to interpret
+  * 		value  - Pointer to variable for the resulting decoded value
+  * @retval 0 on error, 1 on success
+  */
+static uint8_t parseHex(uint8_t* line, uint8_t len, uint32_t* value) {
     *value = 0;
     while (len--) {
         if (*line == 0) return 0;
@@ -44,105 +163,55 @@ uint8_t parseHex(uint8_t* line, uint8_t len, uint32_t* value) {
 }
 
 /**
- * Send given value as hexadecimal string
- *
- * @param value Value to send as hex over the UART
- * @param len Count of characters to produce
+ * @brief  Interprets given line and transmit can message
+ * @param  line Line string which contains the transmit command
+ * @retval HAL status
  */
-void sendHex(uint32_t value, uint8_t len) {
-
-    char s[20];
-    char *p = s;
-    s[len] = 0;
-
-    if (len > sizeof(s))
-    {
-    	return;
-    }
-
-    while (len--) {
-
-        unsigned char hex = value & 0x0f;
-        if (hex > 9) hex = hex - 10 + 'A';
-        else hex = hex + '0';
-        s[len] = hex;
-
-        value = value >> 4;
-    }
-
-
-    while (p)
-    {
-    	slcanSetOutputChar(*p);
-    	p ++;
-    }
-    slcanSetOutputChar(0);
-}
-
-/**
- * Send given byte value as hexadecimal string
- *
- * @param value Byte value to send over UART
- */
-void sendByteHex(uint8_t ch) {
-
-	uint8_t chl = ch & 0x0F;
-	chl = chl > 9 ? chl - 10 + 'A' : chl + '0';
-
-	uint8_t chh = ch >> 4;
-	chh = chh > 9 ? chh - 10 + 'A' : chh + '0';
-
-	slcanSetOutputChar(chh);
-	slcanSetOutputChar(chl);
-}
-
-
-/**
- * Interprets given line and transmit can message
- *
- * @param line Line string which contains the transmit command
- */
-uint8_t transmitStd(uint8_t* line) {
-	slcan_canmsg_t canmsg;
+static uint8_t transmitStd(uint8_t* line) {
     uint32_t temp;
     uint8_t idlen;
 
-    canmsg.flags.rtr = ((line[0] == 'r') || (line[0] == 'R'));
+
+    hcan.pTxMsg->RTR = ((line[0] == 'r') || (line[0] == 'R'));
 
     // upper case -> extended identifier
     if (line[0] < 'Z') {
-        canmsg.flags.extended = 1;
-        idlen = 8;
+    	idlen = 8;
+        if (!parseHex(&line[1], idlen, &temp)) return 0;
+        hcan.pTxMsg->IDE = CAN_ID_EXT;
+        hcan.pTxMsg->ExtId = temp;
+
     } else {
-        canmsg.flags.extended = 0;
-        idlen = 3;
+    	idlen = 3;
+    	if (!parseHex(&line[1], idlen, &temp)) return 0;
+		hcan.pTxMsg->IDE = CAN_ID_STD;
+		hcan.pTxMsg->StdId = temp;
     }
 
-    if (!parseHex(&line[1], idlen, &temp)) return 0;
-    canmsg.id = temp;
 
     if (!parseHex(&line[1 + idlen], 1, &temp)) return 0;
-    canmsg.dlc = temp;
+    hcan.pTxMsg->DLC = temp;
 
-    if (!canmsg.flags.rtr) {
-        unsigned char i;
-        unsigned char length = canmsg.dlc;
+    if (!hcan.pTxMsg->RTR) {
+    	uint8_t i;
+        uint8_t length = hcan.pTxMsg->DLC;
         if (length > 8) length = 8;
         for (i = 0; i < length; i++) {
             if (!parseHex(&line[idlen + 2 + i*2], 2, &temp)) return 0;
-            canmsg.data[i] = temp;
+            hcan.pTxMsg->Data[i] = temp;
         }
     }
 
-    return slcanSendCanFrame(&canmsg);
+    return HAL_CAN_Transmit(&hcan, 1000);
 }
 
+
 /**
- * Parse given command line
- *
- * @param line Line string to parse
+ * @brief  Parse given command line
+ * @param  line Line string to parse
+ * @retval None
  */
-void slcanProccessInput(uint8_t* line)
+static void slcanProccessInput(uint8_t* line)
 {
 	uint8_t result = SLCAN_BELL;
 
@@ -178,7 +247,7 @@ void slcanProccessInput(uint8_t* line)
                 unsigned long address;
                 if (parseHex(&line[1], 2, &address)) {
                     unsigned char value = 0;//mcp2515_read_register(address);
-                    sendByteHex(value);
+                    slcanSetOutputAsHex(value);
                     result = SLCAN_CR;
                 }
             }
@@ -197,8 +266,8 @@ void slcanProccessInput(uint8_t* line)
             {
 
                 slcanSetOutputChar('V');
-                sendByteHex(VERSION_HARDWARE_MAJOR);
-                sendByteHex(VERSION_HARDWARE_MINOR);
+                slcanSetOutputAsHex(VERSION_HARDWARE_MAJOR);
+                slcanSetOutputAsHex(VERSION_HARDWARE_MINOR);
                 result = SLCAN_CR;
             }
             break;
@@ -206,15 +275,15 @@ void slcanProccessInput(uint8_t* line)
             {
 
                 slcanSetOutputChar('v');
-                sendByteHex(VERSION_FIRMWARE_MAJOR);
-                sendByteHex(VERSION_FIRMWARE_MINOR);
+                slcanSetOutputAsHex(VERSION_FIRMWARE_MAJOR);
+                slcanSetOutputAsHex(VERSION_FIRMWARE_MINOR);
                 result = SLCAN_CR;
             }
             break;
         case 'N': // Get serial number
             {
                 slcanSetOutputChar('N');
-                sendHex(0xFFFF, 4);
+                slcanSetOutputAsHex(1);
                 result = SLCAN_CR;
             }
             break;
@@ -278,7 +347,7 @@ void slcanProccessInput(uint8_t* line)
                 if (flags & 0x20) status |= 0x80; // bus error
 
                 slcanSetOutputChar('F');
-                sendByteHex(status);
+                slcanSetOutputAsHex(status);
                 result = SLCAN_CR;
             }
             break;
@@ -315,19 +384,22 @@ void slcanProccessInput(uint8_t* line)
     }
 
    slcanSetOutputChar(result);
+   slcanOutputFlush();
 }
 
+
 /**
- *  reciving CAN frame - called in main aplication
- *
- * @param canmsg Pointer to can message
- * @param step Current step
- * @return Next character to print out
+ * @brief  reciving CAN frame
+ * @param  canmsg Pointer to can message
+ * 			step Current step
+ * @retval Next character to print out
  */
-char slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
+uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
 
 	uint32_t id;
 	uint8_t i;
+
+
 	// type
 	if (pRxMsg->ExtId == CAN_ID_EXT) {
 		if (pRxMsg->RTR == CAN_RTR_REMOTE)
@@ -355,19 +427,20 @@ char slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg) {
 	uint8_t* id_bp = (uint8_t*) &id;
 	for (i = 4; i != 0; i--)
 	{
-		sendByteHex(id_bp[i - 1]);
+		slcanSetOutputAsHex(id_bp[i - 1]);
 	}
 	// length
-	sendByteHex(pRxMsg->DLC);
+	slcanSetOutputAsHex(pRxMsg->DLC);
 
 	//data
 	if ((pRxMsg->DLC > 0) && (pRxMsg->RTR != CAN_RTR_REMOTE))
 	{
 		for (i = 0;  i != pRxMsg->DLC; i ++)
 		{
-			sendByteHex(pRxMsg->Data[i]);
+			slcanSetOutputAsHex(pRxMsg->Data[i]);
 		}
 	}
 	slcanSetOutputChar(SLCAN_CR);
+	slcanOutputFlush();
 	return 0;
 }
