@@ -9,6 +9,7 @@
 #include "stm32f0xx_hal_can.h"
 #include "string.h"
 #include "slcan.h"
+#include "slcan_additional.h"
 #include "usbd_cdc_if.h"
 
 #define LINE_MAXLEN 100
@@ -27,44 +28,6 @@ static uint8_t timestamping = 0;
 
 static void slcanProccessInput(uint8_t* line);
 extern CAN_HandleTypeDef hcan;
-
-void slcanSetCANBaudRate(uint8_t br)
-{ //todo it is for 75% sampling point
-	switch (br)
-	{
-		case CAN_BR_1M:
-			hcan.Init.Prescaler = 3;
-		break;
-		case CAN_BR_500K:
-			hcan.Init.Prescaler = 6;
-		break;
-		case CAN_BR_250K:
-			hcan.Init.Prescaler = 12;
-		break;
-		case CAN_BR_125K:
-			hcan.Init.Prescaler = 24;
-		break;
-		case CAN_BR_100K:
-			hcan.Init.Prescaler = 30;
-		break;
-		case CAN_BR_50K:
-			hcan.Init.Prescaler = 60;
-		break;
-		case CAN_BR_20K:
-			hcan.Init.Prescaler = 150;
-		break;
-		case CAN_BR_10K:
-			hcan.Init.Prescaler = 300;
-		break;
-		default:
-			break;
-	}
-
-	if (HAL_CAN_Init(&hcan) != HAL_OK)
-	{
-		// todo Error handler
-	}
-}
 
 uint8_t sl_frame[32];
 uint8_t sl_frame_len=0;
@@ -235,31 +198,17 @@ static void slcanProccessInput(uint8_t* line)
         case 's': // Setup with user defined timing settings for CNF1/CNF2/CNF3
             if (state == STATE_CONFIG)
             {
-                unsigned long cnf1, cnf2, cnf3;
-                if (parseHex(&line[1], 2, &cnf1) && parseHex(&line[3], 2, &cnf2) && parseHex(&line[5], 2, &cnf3)) {
-//                    mcp2515_set_bittiming(cnf1, cnf2, cnf3);
-                    result = SLCAN_CR;
-                }
-            }
-            break;
-        case 'G': // Read given MCP2515 register
-            {
-                unsigned long address;
-                if (parseHex(&line[1], 2, &address)) {
-                    unsigned char value = 0;//mcp2515_read_register(address);
-                    slcanSetOutputAsHex(value);
-                    result = SLCAN_CR;
-                }
-            }
-            break;
-        case 'W': // Write given MCP2515 register
-            {
-                unsigned long address, data;
-                if (parseHex(&line[1], 2, &address) && parseHex(&line[3], 2, &data)) {
-//                    mcp2515_write_register(address, data);
-                    result = SLCAN_CR;
-                }
+                uint32_t sjw, bs1, bs2, pre;
+                if (parseHex(&line[1], 2, &sjw) && parseHex(&line[3], 2, &bs1) &&
+                		parseHex(&line[5], 2, &bs2) && parseHex(&line[7], 4, &pre) ) {
 
+                	hcan.Init.SJW = sjw;
+                	hcan.Init.BS1 = bs1;
+                	hcan.Init.BS2 = bs2;
+                	hcan.Init.Prescaler = pre;
+                	CANInit();
+                    result = SLCAN_CR;
+                }
             }
             break;
         case 'V': // Get hardware version
@@ -294,10 +243,7 @@ static void slcanProccessInput(uint8_t* line)
             if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_NORMAL;
-            	if (HAL_CAN_Init(&hcan) != HAL_OK)
-            	{
-            		// todo Error handler
-            	}
+            	CANInit();
 //                clock_reset();
                 state = STATE_OPEN;
                 result = SLCAN_CR;
@@ -307,10 +253,7 @@ static void slcanProccessInput(uint8_t* line)
             if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_LOOPBACK;
-				if (HAL_CAN_Init(&hcan) != HAL_OK)
-				{
-					// todo Error handler
-				}
+            	CANInit();
                 state = STATE_OPEN;
                 result = SLCAN_CR;
             }
@@ -319,10 +262,7 @@ static void slcanProccessInput(uint8_t* line)
             if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_SILENT;
-				if (HAL_CAN_Init(&hcan) != HAL_OK)
-				{
-					// todo Error handler
-				}
+            	CANInit();
                 state = STATE_LISTEN;
                 result = SLCAN_CR;
             }
@@ -330,7 +270,7 @@ static void slcanProccessInput(uint8_t* line)
         case 'C': // Close CAN channel
             if (state != STATE_CONFIG)
             {
-//            	mcp2515_bit_modify(MCP2515_REG_CANCTRL, 0xE0, 0x80); // set configuration mode
+//            	todo into slleep
                 state = STATE_CONFIG;
                 result = SLCAN_CR;
             }
@@ -351,7 +291,7 @@ static void slcanProccessInput(uint8_t* line)
             break;
         case 'F': // Read status flags
             {
-                unsigned char flags = 0;//mcp2515_read_register(MCP2515_REG_EFLG);
+                unsigned char flags = 0;
                 unsigned char status = 0;
 
                 if (flags & 0x01) status |= 0x04; // error warning
@@ -364,35 +304,35 @@ static void slcanProccessInput(uint8_t* line)
                 result = SLCAN_CR;
             }
             break;
-         case 'Z': // Set time stamping
-            {
-                unsigned long stamping;
-                if (parseHex(&line[1], 1, &stamping)) {
-                    timestamping = (stamping != 0);
-                    result = SLCAN_CR;
-                }
-            }
-            break;
-         case 'm': // Set accpetance filter mask
-            if (state == STATE_CONFIG)
-            {
-                unsigned long am0, am1, am2, am3;
-//                    mcp2515_set_SJA1000_filter_mask(am0, am1, am2, am3);
-//                if (parseHex(&line[1], 2, &am0) && parseHex(&line[3], 2, &am1) && parseHex(&line[5], 2, &am2) && parseHex(&line[7], 2, &am3)) {
-                    result = SLCAN_CR;
+//         case 'Z': // Set time stamping
+//            {
+//                unsigned long stamping;
+//                if (parseHex(&line[1], 1, &stamping)) {
+//                    timestamping = (stamping != 0);
+//                    result = SLCAN_CR;
 //                }
-            }
-            break;
-         case 'M': // Set accpetance filter code
-            if (state == STATE_CONFIG)
-            {
-                unsigned long ac0, ac1, ac2, ac3;
-//                if (parseHex(&line[1], 2, &ac0) && parseHex(&line[3], 2, &ac1) && parseHex(&line[5], 2, &ac2) && parseHex(&line[7], 2, &ac3)) {
-//                    mcp2515_set_SJA1000_filter_code(ac0, ac1, ac2, ac3);
-                    result = SLCAN_CR;
-//                }
-            }
-            break;
+//            }
+//            break;
+//         case 'm': // Set accpetance filter mask
+//            if (state == STATE_CONFIG)
+//            {
+////            		uint32_t am0, am1, am2, am3;
+////                    mcp2515_set_SJA1000_filter_mask(am0, am1, am2, am3);
+////                if (parseHex(&line[1], 2, &am0) && parseHex(&line[3], 2, &am1) && parseHex(&line[5], 2, &am2) && parseHex(&line[7], 2, &am3)) {
+//                    result = SLCAN_CR;
+////                }
+//            }
+//            break;
+//         case 'M': // Set accpetance filter code
+//            if (state == STATE_CONFIG)
+//            {
+////                uint32_t ac0, ac1, ac2, ac3;
+////                if (parseHex(&line[1], 2, &ac0) && parseHex(&line[3], 2, &ac1) && parseHex(&line[5], 2, &ac2) && parseHex(&line[7], 2, &ac3)) {
+////                    mcp2515_set_SJA1000_filter_code(ac0, ac1, ac2, ac3);
+//                    result = SLCAN_CR;
+////                }
+//            }
+//            break;
 
     }
 
