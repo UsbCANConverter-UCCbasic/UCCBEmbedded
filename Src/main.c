@@ -118,12 +118,10 @@ int main(void) {
 	{
 		CAN_FilterConfTypeDef sFilterConfig;
 		sFilterConfig.FilterNumber = 0;
-		sFilterConfig.FilterMode = CAN_FILTERMODE_IDLIST;
+		sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
 		sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-//		sFilterConfig.FilterIdHigh = 0x0080;
 		sFilterConfig.FilterIdHigh = 0x0000;
 		sFilterConfig.FilterIdLow = 0;
-//		sFilterConfig.FilterMaskIdHigh = 0x0080;
 		sFilterConfig.FilterMaskIdHigh = 0x0000;
 		sFilterConfig.FilterMaskIdLow = 0;
 		sFilterConfig.FilterFIFOAssignment = 0;

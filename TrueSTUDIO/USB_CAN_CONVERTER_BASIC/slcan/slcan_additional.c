@@ -21,24 +21,49 @@ void CANInit(void)
 	}
 }
 
-tCANfilter32 slcanFillIdRegister(tFilterFlags flags, uint32_t id)
+tCANfilter slcanFillIdRegister32(tCANFilterFlagsId fl, uint32_t id)
 {
-	tCANfilter32 f;
+	tCANfilter f;
 	f.h.reg = 0;
 	f.l.reg = 0;
 
-	f.l.RTR = flags.bRTR;
-	f.l.IDE = flags.bExtedned;
-	if (flags.bExtedned)
+	f.l.f32.RTR = fl.bRTR1;
+	f.l.f32.IDE = fl.bExtedned1;
+	if (fl.bExtedned1)
 	{
-		f.l.EXID4_0 = id;
-		f.l.EXID12_5 = id >> 5;
-		f.h.EXID17_13 = id >> 13;
+		f.l.f32.EXID4_0 = id;
+		f.l.f32.EXID12_5 = id >> 5;
+		f.h.f32.EXID17_13 = id >> 13;
 	} else {
-		f.h.STID2_0 = id;
-		f.h.STID10_3 = id >> 3;
+		f.h.f32.STID2_0 = id;
+		f.h.f32.STID10_3 = id >> 3;
+	}
+	return f;
+}
+
+tCANfilter slcanFillIdRegister16(tCANFilterFlagsId fl, uint32_t id)
+{
+	tCANfilter f;
+	f.h.reg = 0;
+	f.l.reg = 0;
+
+	f.l.f16.RTR = fl.bRTR1;
+	f.l.f16.IDE = fl.bExtedned1;
+	if (fl.bExtedned1)
+	{
+		f.l.f16.STID2_0 = id;
+		f.l.f16.STID10_3 = id >> 3;
+		f.l.f16.EXID17_15 = id >> 8;
 	}
 
+	f.l.f16.RTR = fl.bRTR2;
+	f.l.f16.IDE = fl.bExtedned2;
+	if (fl.bExtedned2)
+	{
+		f.h.f16.STID2_0 = id >> 16;
+		f.h.f16.STID10_3 = id >> (3 + 16);
+		f.h.f16.EXID17_15 = id >> (8 + 16);
+	}
 
 	return f;
 }

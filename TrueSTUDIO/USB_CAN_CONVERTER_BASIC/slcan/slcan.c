@@ -291,14 +291,12 @@ static void slcanProccessInput(uint8_t* line)
             break;
         case 'F': // Read status flags
             {
-                unsigned char flags = 0;
-                unsigned char status = 0;
-
-                if (flags & 0x01) status |= 0x04; // error warning
-                if (flags & 0xC0) status |= 0x08; // data overrun
-                if (flags & 0x18) status |= 0x20; // passive error
-                if (flags & 0x20) status |= 0x80; // bus error
-
+                unsigned char status = HAL_CAN_GetError(&hcan);
+//                unsigned char flags = HAL_CAN_GetError(&hcan);
+//                if (flags & 0x01) status |= 0x04; // error warning
+//                if (flags & 0xC0) status |= 0x08; // data overrun
+//                if (flags & 0x18) status |= 0x20; // passive error
+//                if (flags & 0x20) status |= 0x80; // bus error
                 slcanSetOutputChar('F');
                 slcanSetOutputAsHex(status);
                 result = SLCAN_CR;
@@ -318,18 +316,29 @@ static void slcanProccessInput(uint8_t* line)
             if (state == STATE_CONFIG)
             {
             	CAN_FilterConfTypeDef sFilterConfig;
-            	tCANfilter32 f;
+            	tCANfilter freg,mreg;
             	uint32_t n,b;
-            	tFilterFlags fflags;
-            	uint32_t id,m;
+            	tCANFilterFlagsConf fflags;
+            	tCANFilterFlagsId idflags,maskflags;
+            	uint32_t id,mask;
 
             	if (!parseHex(&line[1], 2, &n)) break;
             	if (!parseHex(&line[3], 2, &b)) break;
-            	if (!parseHex(&line[5], 2, &fflags.byte)) break;
-            	if (!parseHex(&line[7], 8, &id)) break;
-            	if (!parseHex(&line[15], 8, &m)) break;
+            	if (!parseHex(&line[5], 1, &fflags.reg)) break;
+            	if (!parseHex(&line[6], 8, &id)) break;
+            	if (!parseHex(&line[14], 1, &idflags.reg)) break;
+            	if (!parseHex(&line[15], 8, &mask)) break;
+            	if (!parseHex(&line[23], 1, &maskflags.reg)) break;
 
-            	f = slcanFillIdRegister(fflags,id);
+            	if (fflags.bScale == CAN_FILTERSCALE_32BIT)
+            	{
+					freg = slcanFillIdRegister32(idflags, id);
+					mreg = slcanFillIdRegister32(maskflags, mask);
+            	} else
+            	{
+            		freg = slcanFillIdRegister16(idflags, id);
+            		mreg = slcanFillIdRegister16(maskflags, mask);
+            	}
 
             	sFilterConfig.FilterNumber = n;
             	sFilterConfig.BankNumber = b;
@@ -337,10 +346,10 @@ static void slcanProccessInput(uint8_t* line)
 				sFilterConfig.FilterMode = fflags.bMode; // CAN_FILTERMODE_IDLIST == 1
 				sFilterConfig.FilterScale = fflags.bScale;  // CAN_FILTERSCALE_32BIT == 1
 				sFilterConfig.FilterFIFOAssignment = fflags.bFIFO;
-				sFilterConfig.FilterIdHigh = f.h.reg;
-				sFilterConfig.FilterIdLow = f.l.reg;
-				sFilterConfig.FilterMaskIdHigh = m;
-				sFilterConfig.FilterMaskIdLow = m;
+				sFilterConfig.FilterIdHigh = freg.h.reg;
+				sFilterConfig.FilterIdLow = freg.l.reg;
+				sFilterConfig.FilterMaskIdHigh = mreg.h.reg;
+				sFilterConfig.FilterMaskIdLow = mreg.l.reg;
 
 				if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) == HAL_OK)
 					result = SLCAN_CR;
