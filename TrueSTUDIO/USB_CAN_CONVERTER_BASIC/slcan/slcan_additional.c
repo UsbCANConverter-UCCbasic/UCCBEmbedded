@@ -8,6 +8,7 @@
 #include "stm32f0xx_hal.h"
 #include "stm32f0xx_hal_can.h"
 #include "slcan.h"
+#include "slcan_additional.h"
 
 extern CAN_HandleTypeDef hcan;
 extern void Error_Handler(void);
@@ -18,6 +19,28 @@ void CANInit(void)
 	{
 		Error_Handler();
 	}
+}
+
+tCANfilter32 slcanFillIdRegister(tFilterFlags flags, uint32_t id)
+{
+	tCANfilter32 f;
+	f.h.reg = 0;
+	f.l.reg = 0;
+
+	f.l.RTR = flags.bRTR;
+	f.l.IDE = flags.bExtedned;
+	if (flags.bExtedned)
+	{
+		f.l.EXID4_0 = id;
+		f.l.EXID12_5 = id >> 5;
+		f.h.EXID17_13 = id >> 13;
+	} else {
+		f.h.STID2_0 = id;
+		f.h.STID10_3 = id >> 3;
+	}
+
+
+	return f;
 }
 
 void slcanSetCANBaudRate(uint8_t br)

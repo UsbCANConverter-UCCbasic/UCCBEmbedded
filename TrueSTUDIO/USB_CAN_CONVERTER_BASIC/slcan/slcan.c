@@ -304,35 +304,48 @@ static void slcanProccessInput(uint8_t* line)
                 result = SLCAN_CR;
             }
             break;
-//         case 'Z': // Set time stamping
-//            {
-//                unsigned long stamping;
-//                if (parseHex(&line[1], 1, &stamping)) {
-//                    timestamping = (stamping != 0);
-//                    result = SLCAN_CR;
-//                }
-//            }
-//            break;
-//         case 'm': // Set accpetance filter mask
-//            if (state == STATE_CONFIG)
-//            {
-////            		uint32_t am0, am1, am2, am3;
-////                    mcp2515_set_SJA1000_filter_mask(am0, am1, am2, am3);
-////                if (parseHex(&line[1], 2, &am0) && parseHex(&line[3], 2, &am1) && parseHex(&line[5], 2, &am2) && parseHex(&line[7], 2, &am3)) {
-//                    result = SLCAN_CR;
-////                }
-//            }
-//            break;
-//         case 'M': // Set accpetance filter code
-//            if (state == STATE_CONFIG)
-//            {
-////                uint32_t ac0, ac1, ac2, ac3;
-////                if (parseHex(&line[1], 2, &ac0) && parseHex(&line[3], 2, &ac1) && parseHex(&line[5], 2, &ac2) && parseHex(&line[7], 2, &ac3)) {
-////                    mcp2515_set_SJA1000_filter_code(ac0, ac1, ac2, ac3);
-//                    result = SLCAN_CR;
-////                }
-//            }
-//            break;
+         case 'Z': // Set time stamping
+            {
+                unsigned long stamping;
+                if (parseHex(&line[1], 1, &stamping)) {
+                    timestamping = (stamping != 0);
+                    result = SLCAN_CR;
+                }
+            }
+            break;
+         case 'm': // Set accpetance filter mask
+         case 'M': // Set accpetance filter code
+            if (state == STATE_CONFIG)
+            {
+            	CAN_FilterConfTypeDef sFilterConfig;
+            	tCANfilter32 f;
+            	uint32_t n,b;
+            	tFilterFlags fflags;
+            	uint32_t id,m;
+
+            	if (!parseHex(&line[1], 2, &n)) break;
+            	if (!parseHex(&line[3], 2, &b)) break;
+            	if (!parseHex(&line[5], 2, &fflags.byte)) break;
+            	if (!parseHex(&line[7], 8, &id)) break;
+            	if (!parseHex(&line[15], 8, &m)) break;
+
+            	f = slcanFillIdRegister(fflags,id);
+
+            	sFilterConfig.FilterNumber = n;
+            	sFilterConfig.BankNumber = b;
+            	sFilterConfig.FilterActivation = fflags.bFilterActivation; // ENABLE == 1
+				sFilterConfig.FilterMode = fflags.bMode; // CAN_FILTERMODE_IDLIST == 1
+				sFilterConfig.FilterScale = fflags.bScale;  // CAN_FILTERSCALE_32BIT == 1
+				sFilterConfig.FilterFIFOAssignment = fflags.bFIFO;
+				sFilterConfig.FilterIdHigh = f.h.reg;
+				sFilterConfig.FilterIdLow = f.l.reg;
+				sFilterConfig.FilterMaskIdHigh = m;
+				sFilterConfig.FilterMaskIdLow = m;
+
+				if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) == HAL_OK)
+					result = SLCAN_CR;
+            }
+            break;
 
     }
 
@@ -362,9 +375,11 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 			slcanSetOutputChar('T');
 		}
 		// id
-		for (i = 4; i != 0; i--)
+		for (i = 0; i != 4; i++)
+//		for (i = 4; i != 0; i--)
 		{
-			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i - 1]);
+//			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i - 1]);
+			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i]);
 		}
 	} else
 	{
@@ -379,6 +394,8 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 		//id
 		slCanSendNibble(((uint8_t*)&pRxMsg->StdId)[1] & 0x0F);
 		slcanSetOutputAsHex(((uint8_t*)&pRxMsg->StdId)[0]);
+
+
 
 	}
 	// length
