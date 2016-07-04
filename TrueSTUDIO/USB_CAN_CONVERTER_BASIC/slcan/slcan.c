@@ -355,6 +355,9 @@ static void slcanProccessInput(uint8_t* line)
 					result = SLCAN_CR;
             }
             break;
+         case 'b':
+        	 RebootToBootloader();
+        	 break;
 
     }
 
