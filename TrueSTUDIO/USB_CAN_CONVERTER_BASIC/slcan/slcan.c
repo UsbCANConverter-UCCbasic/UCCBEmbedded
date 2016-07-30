@@ -195,6 +195,12 @@ static void slcanProccessInput(uint8_t* line)
                 }
             }
             break;
+
+        case 'G': // Read given MCP2515 register
+        case 'W':
+			result = SLCAN_CR;
+			break;
+
         case 's': // Setup with user defined timing settings for CNF1/CNF2/CNF3
             if (state == STATE_CONFIG)
             {
