@@ -245,6 +245,7 @@ static void slcanProccessInput(uint8_t* line)
                 result = SLCAN_CR;
             }
             break;
+        case 'o':
         case 'O': // Open CAN channel
             if (state == STATE_CONFIG)
             {
@@ -287,7 +288,7 @@ static void slcanProccessInput(uint8_t* line)
         case 'T': // Transmit extended (29 bit) frame
 //            if (state == STATE_OPEN) todo Przywrocic OPEN
             {
-                if (transmitStd(line+1)) {
+                if (transmitStd(line) == HAL_OK) {
                     if (line[0] < 'Z') slcanSetOutputChar('Z');
                     else slcanSetOutputChar('z');
                     result = SLCAN_CR;
@@ -319,7 +320,12 @@ static void slcanProccessInput(uint8_t* line)
             break;
          case 'm': // Set accpetance filter mask
          case 'M': // Set accpetance filter code
-            if (state == STATE_CONFIG)
+            if (line[1] == 'd') // disable all filtering
+            {
+            	slcanClearAllFilters();
+            	result = SLCAN_CR;
+            	slcanSetOutputChar('M');
+            } else
             {
             	CAN_FilterConfTypeDef sFilterConfig;
             	tCANfilter freg,mreg;
@@ -357,6 +363,7 @@ static void slcanProccessInput(uint8_t* line)
 				sFilterConfig.FilterMaskIdHigh = mreg.h.reg;
 				sFilterConfig.FilterMaskIdLow = mreg.l.reg;
 
+				slcanSetOutputChar('M');
 				if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) == HAL_OK)
 					result = SLCAN_CR;
             }

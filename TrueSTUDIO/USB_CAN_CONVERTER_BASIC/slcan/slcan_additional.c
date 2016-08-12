@@ -21,6 +21,26 @@ void CANInit(void)
 	}
 }
 
+HAL_StatusTypeDef slcanClearAllFilters(void)
+{
+	CAN_FilterConfTypeDef sFilterConfig;
+	sFilterConfig.FilterNumber = 0;
+	sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	sFilterConfig.FilterIdHigh = 0x0000;
+	sFilterConfig.FilterIdLow = 0;
+	sFilterConfig.FilterMaskIdHigh = 0x0000;
+	sFilterConfig.FilterMaskIdLow = 0;
+	sFilterConfig.FilterFIFOAssignment = 0;
+	sFilterConfig.FilterActivation = ENABLE;
+	sFilterConfig.BankNumber = 0;
+
+	if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
+		return HAL_ERROR;
+	else
+		return HAL_OK;
+}
+
 tCANfilter slcanFillIdRegister32(tCANFilterFlagsId fl, uint32_t id)
 {
 	tCANfilter f;

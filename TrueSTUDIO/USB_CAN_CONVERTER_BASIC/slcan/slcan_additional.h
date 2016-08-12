@@ -65,6 +65,7 @@ typedef struct {
 
 tCANfilter slcanFillIdRegister32(tCANFilterFlagsId fl, uint32_t id);
 tCANfilter slcanFillIdRegister16(tCANFilterFlagsId fl, uint32_t id);
+HAL_StatusTypeDef slcanClearAllFilters(void);
 
 void CANInit(void);
 void slcanSetCANBaudRate(uint8_t br);

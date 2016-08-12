@@ -116,20 +116,7 @@ int main(void) {
 	canRxFlags.flags.byte = 0;
 	// CAN RX init
 	{
-		CAN_FilterConfTypeDef sFilterConfig;
-		sFilterConfig.FilterNumber = 0;
-		sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-		sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-		sFilterConfig.FilterIdHigh = 0x0000;
-		sFilterConfig.FilterIdLow = 0;
-		sFilterConfig.FilterMaskIdHigh = 0x0000;
-		sFilterConfig.FilterMaskIdLow = 0;
-		sFilterConfig.FilterFIFOAssignment = 0;
-		sFilterConfig.FilterActivation = ENABLE;
-		sFilterConfig.BankNumber = 0;
-
-		if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
-			return HAL_ERROR;
+		slcanClearAllFilters();
 
 		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
 		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
