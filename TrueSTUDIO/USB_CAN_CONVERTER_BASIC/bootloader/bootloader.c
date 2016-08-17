@@ -9,11 +9,13 @@
 
 
 
-#define BOOTLOADER_MAGIC_ADDR ((uint32_t*) ((uint32_t) 0x20001000)) //4k into SRAM (out of 6k)
-#define BOOTLOADER_MAGIC_TOKEN 0xDEADBEEF  // :D
 
+#define BOOTLOADER_MAGIC_TOKEN 0xDEADBEEF  // :D
+volatile uint32_t* BOOTLOADER_MAGIC_ADDR = ((uint32_t*) ((uint32_t) 0x20001000)); //4k into SRAM (out of 6k)
 //Value taken from CD00167594.pdf page 35, system memory start.
 #define BOOTLOADER_START_ADDR 0x1fffc400 //for ST32F042
+
+
 
 void RebootToBootloader(){
 //call this at any time to initiate a reboot into bootloader

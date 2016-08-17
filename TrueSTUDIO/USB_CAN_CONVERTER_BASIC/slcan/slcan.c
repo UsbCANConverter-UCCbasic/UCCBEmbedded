@@ -174,6 +174,7 @@ static uint8_t transmitStd(uint8_t* line) {
  * @param  line Line string to parse
  * @retval None
  */
+void RebootToBootloader();
 static void slcanProccessInput(uint8_t* line)
 {
 	uint8_t result = SLCAN_BELL;
@@ -247,7 +248,7 @@ static void slcanProccessInput(uint8_t* line)
             break;
         case 'o':
         case 'O': // Open CAN channel
-            if (state == STATE_CONFIG)
+//            if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_NORMAL;
             	CANInit();
@@ -257,7 +258,7 @@ static void slcanProccessInput(uint8_t* line)
             }
             break;
         case 'l': // Loop-back mode
-            if (state == STATE_CONFIG)
+//            if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_LOOPBACK;
             	CANInit();

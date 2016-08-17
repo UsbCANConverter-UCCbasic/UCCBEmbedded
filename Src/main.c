@@ -85,7 +85,7 @@ volatile tcanRx canRxFlags;
 /* USER CODE END 0 */
 
 
-
+void bootloaderSwitcher();
 int main(void) {
 
 	/* USER CODE BEGIN 1 */
