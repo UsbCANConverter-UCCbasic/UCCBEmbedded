@@ -73,10 +73,12 @@ extern UART_HandleTypeDef huart2;
   * @param  None
   * @retval None
   */
+extern USBD_HandleTypeDef hUsbDeviceFS;
 static void slcanOutputFlush(void)
 {
 	CDC_Transmit_FS(sl_frame, sl_frame_len);
-	HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
+	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
+		HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
 	sl_frame_len = 0;
 }
 
