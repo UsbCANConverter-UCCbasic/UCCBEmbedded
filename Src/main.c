@@ -139,8 +139,8 @@ int main(void) {
 	while (1) {
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);
-			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 			canRxFlags.flags.fifo1 = 0;
+			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 		}
 		/* USER CODE END WHILE */
 
