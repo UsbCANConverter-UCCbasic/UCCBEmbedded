@@ -34,7 +34,7 @@
 
 uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
 void slCanProccesInput(uint8_t ch);
-
+void slCanCheckCommand();
 
 
 #endif /* SLCAN_PORT_H_ */

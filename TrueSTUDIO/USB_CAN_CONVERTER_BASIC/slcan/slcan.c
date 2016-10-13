@@ -26,7 +26,7 @@ uint32_t serialNumber = 0x01040816;
 static uint8_t state = STATE_CONFIG;
 static uint8_t timestamping = 0;
 
-static void slcanProccessInput(uint8_t* line);
+
 extern CAN_HandleTypeDef hcan;
 
 uint8_t sl_frame[32];
@@ -87,6 +87,7 @@ static void slcanOutputFlush(void)
   * @param  ch - data to add
   * @retval None
   */
+static uint8_t command[LINE_MAXLEN];
 void slCanProccesInput(uint8_t ch)
 {
 	static uint8_t line[LINE_MAXLEN];
@@ -94,7 +95,7 @@ void slCanProccesInput(uint8_t ch)
 
     if (ch == SLCAN_CR) {
         line[linepos] = 0;
-        slcanProccessInput(line);
+        memcpy(command,line,linepos);
         linepos = 0;
     } else if (ch != SLCAN_LR) {
         line[linepos] = ch;
@@ -177,9 +178,12 @@ static uint8_t transmitStd(uint8_t* line) {
  * @retval None
  */
 void RebootToBootloader();
-static void slcanProccessInput(uint8_t* line)
+void slCanCheckCommand()
 {
 	uint8_t result = SLCAN_BELL;
+	uint8_t *line = command;
+	if (line[0] == 0)
+		return ;
 
     switch (line[0]) {
         case 'S': // Setup with standard CAN bitrates
@@ -372,11 +376,13 @@ static void slcanProccessInput(uint8_t* line)
             }
             break;
          case 'b':
+        	 line[0] = 0;
         	 RebootToBootloader();
         	 break;
 
     }
 
+   line[0] = 0;
    slcanSetOutputChar(result);
    slcanOutputFlush();
 }
