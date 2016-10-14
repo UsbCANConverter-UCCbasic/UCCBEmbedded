@@ -258,6 +258,7 @@ void slCanCheckCommand()
             {
             	hcan.Init.Mode = CAN_MODE_NORMAL;
             	CANInit();
+            	HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
 //                clock_reset();
                 state = STATE_OPEN;
                 result = SLCAN_CR;
@@ -267,6 +268,7 @@ void slCanCheckCommand()
 //            if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_LOOPBACK;
+            	HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
             	CANInit();
                 state = STATE_OPEN;
                 result = SLCAN_CR;
@@ -276,14 +278,16 @@ void slCanCheckCommand()
             if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_SILENT;
+            	HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
             	CANInit();
                 state = STATE_LISTEN;
                 result = SLCAN_CR;
             }
             break;
         case 'C': // Close CAN channel
-            if (state != STATE_CONFIG)
+//            if (state != STATE_CONFIG)
             {
+            	HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
 //            	todo into slleep
                 state = STATE_CONFIG;
                 result = SLCAN_CR;
@@ -293,7 +297,7 @@ void slCanCheckCommand()
         case 'R': // Transmit extended RTR (29 bit) frame
         case 't': // Transmit standard (11 bit) frame
         case 'T': // Transmit extended (29 bit) frame
-//            if (state == STATE_OPEN) todo Przywrocic OPEN
+            if (state == STATE_OPEN)
             {
                 if (transmitStd(line) == HAL_OK) {
                     if (line[0] < 'Z') slcanSetOutputChar('Z');

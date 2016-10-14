@@ -119,7 +119,7 @@ int main(void) {
 		slcanClearAllFilters();
 
 		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
-		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
+//		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
 
 		HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 	}
