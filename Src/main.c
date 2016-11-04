@@ -86,8 +86,12 @@ volatile tcanRx canRxFlags;
 
 
 void bootloaderSwitcher();
-int main(void) {
 
+#define TYPE_ID 0x1600
+volatile int32_t serialNumber;
+int main(void) {
+	serialNumber = *((int32_t *)0x1FFFF7AC);
+	serialNumber = TYPE_ID | (serialNumber & 0xFFFF00FF);
 	/* USER CODE BEGIN 1 */
 	bootloaderSwitcher();
 	/* USER CODE END 1 */

@@ -21,7 +21,9 @@
 #define STATE_LISTEN 1
 #define STATE_OPEN 2
 
-uint32_t serialNumber = 0x01040816;
+
+
+extern volatile int32_t serialNumber;
 // internal slcan_interface state
 static uint8_t state = STATE_CONFIG;
 static uint8_t timestamping = 0;
@@ -245,10 +247,10 @@ void slCanCheckCommand()
         case 'N': // Get serial number
             {
                 slcanSetOutputChar('N');
-                slcanSetOutputAsHex((uint8_t)serialNumber);
-                slcanSetOutputAsHex((uint8_t)serialNumber>>8);
-                slcanSetOutputAsHex((uint8_t)serialNumber>>16);
-                slcanSetOutputAsHex((uint8_t)serialNumber>>24);
+                slcanSetOutputAsHex((uint8_t)(serialNumber));
+                slcanSetOutputAsHex((uint8_t)(serialNumber>>8));
+                slcanSetOutputAsHex((uint8_t)(serialNumber>>16));
+                slcanSetOutputAsHex((uint8_t)(serialNumber>>24));
                 result = SLCAN_CR;
             }
             break;
@@ -403,7 +405,7 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 	uint8_t i;
 
 	// type
-	if (pRxMsg->ExtId == CAN_ID_EXT) {
+	if (pRxMsg->IDE == CAN_ID_EXT) {
 		if (pRxMsg->RTR == CAN_RTR_REMOTE)
 		{
 			slcanSetOutputChar('R');
@@ -413,11 +415,11 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 			slcanSetOutputChar('T');
 		}
 		// id
-		for (i = 0; i != 4; i++)
-//		for (i = 4; i != 0; i--)
+//		for (i = 0; i != 4; i++)
+		for (i = 4; i != 0; i--)
 		{
-//			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i - 1]);
-			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i]);
+			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i - 1]);
+//			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i]);
 		}
 	} else
 	{
