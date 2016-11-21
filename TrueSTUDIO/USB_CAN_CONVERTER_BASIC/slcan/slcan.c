@@ -259,11 +259,14 @@ void slCanCheckCommand()
 //            if (state == STATE_CONFIG)
             {
             	hcan.Init.Mode = CAN_MODE_NORMAL;
-            	CANInit();
-            	HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
-//                clock_reset();
-                state = STATE_OPEN;
-                result = SLCAN_CR;
+
+            	if(CANInit() == HAL_OK)
+            	{
+					HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
+	//                clock_reset();
+					state = STATE_OPEN;
+					result = SLCAN_CR;
+            	}
             }
             break;
         case 'l': // Loop-back mode

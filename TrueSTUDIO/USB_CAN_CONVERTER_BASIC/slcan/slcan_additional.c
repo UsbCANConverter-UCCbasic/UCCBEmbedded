@@ -13,12 +13,14 @@
 extern CAN_HandleTypeDef hcan;
 extern void Error_Handler(void);
 
-void CANInit(void)
+HAL_StatusTypeDef CANInit(void)
 {
-	if (HAL_CAN_Init(&hcan) != HAL_OK)
-	{
-		Error_Handler();
-	}
+	int i = 0;
+    while (HAL_CAN_Init(&hcan) == HAL_TIMEOUT)
+    {
+    	if ((i++) == 15) return HAL_BUSY;
+    }
+    return HAL_OK;
 }
 
 HAL_StatusTypeDef slcanClearAllFilters(void)
