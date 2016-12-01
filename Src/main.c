@@ -37,6 +37,7 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
 #include "slcan.h"
+#include "slcan_additional.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -68,7 +69,7 @@ CanRxMsgTypeDef CanRxBuffer;
 
 #define UART_RX_FIFO_SIZE    1
 uint8_t Uart2RxFifo;
-uint8_t USBRxFifo;
+
 
 typedef struct tcanRxFlags {
 	union {
@@ -124,13 +125,11 @@ int main(void) {
 
 		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
 //		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
-
 		HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 	}
 	// UART RX
 	{
 		HAL_UART_Receive_IT(&huart2, &Uart2RxFifo, UART_RX_FIFO_SIZE);
-//	  CDC_Receive_FS(USBRxFifo,1);
 		HAL_NVIC_SetPriority(USART2_IRQn, 2, 0);
 		NVIC_EnableIRQ(USART2_IRQn);
 	}
@@ -212,9 +211,7 @@ void MX_CAN_Init() {
 	hcan.Init.NART = DISABLE;
 	hcan.Init.RFLM = DISABLE;
 	hcan.Init.TXFP = DISABLE;
-	if (HAL_CAN_Init(&hcan) != HAL_OK) {
-		Error_Handler();
-	}
+	while (CANInit() != HAL_OK);
 }
 
 /* USART2 init function */
