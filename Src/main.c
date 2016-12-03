@@ -54,6 +54,8 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan;
 
+IWDG_HandleTypeDef hiwdg;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -67,6 +69,7 @@ void Error_Handler(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_IWDG_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -98,6 +101,7 @@ void bootloaderSwitcher();
 #define TYPE_ID 0x160000
 volatile int32_t serialNumber;
 /* USER CODE END 0 */
+
 int main(void)
 {
 
@@ -117,8 +121,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  MX_USB_DEVICE_Init();
   MX_USART2_UART_Init();
+  MX_USB_DEVICE_Init();
+  MX_IWDG_Init();
 
   /* USER CODE BEGIN 2 */
 
@@ -166,16 +171,12 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-
+		HAL_IWDG_Refresh(&hiwdg);
   }
   /* USER CODE END 3 */
 
 }
 
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
-	canRxFlags.flags.fifo1 = 1;
-//    HAL_CAN_Receive_IT(hcan,CAN_FIFO0);
-}
 /** System Clock Configuration
 */
 void SystemClock_Config(void)
@@ -187,8 +188,9 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -231,6 +233,7 @@ void SystemClock_Config(void)
 /* CAN init function */
 static void MX_CAN_Init(void)
 {
+
   hcan.Instance = CAN;
   hcan.Init.Prescaler = 3;
   hcan.Init.Mode = CAN_MODE_NORMAL;
@@ -243,7 +246,23 @@ static void MX_CAN_Init(void)
   hcan.Init.NART = DISABLE;
   hcan.Init.RFLM = DISABLE;
   hcan.Init.TXFP = DISABLE;
-	while (CANInit() != HAL_OK);
+  while (CANInit() != HAL_OK);
+
+}
+
+/* IWDG init function */
+static void MX_IWDG_Init(void)
+{
+
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_16;
+  hiwdg.Init.Window = 4095;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
 }
 
 /* USART2 init function */
@@ -298,6 +317,17 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
+	canRxFlags.flags.fifo1 = 1;
+//    HAL_CAN_Receive_IT(hcan,CAN_FIFO0);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart) {
+	slCanProccesInput(Uart2RxFifo);
+	__HAL_UART_FLUSH_DRREGISTER(huart);
+	HAL_UART_Receive_IT(huart, &Uart2RxFifo, UART_RX_FIFO_SIZE);
+}
+
 /* USER CODE END 4 */
 
 /**
@@ -313,12 +343,6 @@ void Error_Handler(void)
   {
   }
   /* USER CODE END Error_Handler */ 
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart) {
-	slCanProccesInput(Uart2RxFifo);
-	__HAL_UART_FLUSH_DRREGISTER(huart);
-	HAL_UART_Receive_IT(huart, &Uart2RxFifo, UART_RX_FIFO_SIZE);
 }
 
 #ifdef USE_FULL_ASSERT
