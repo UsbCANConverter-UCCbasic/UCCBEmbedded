@@ -33,7 +33,7 @@
 //ex TZ12020506
 
 uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
-void slCanProccesInput(uint8_t ch);
+int slCanProccesInput(uint8_t ch);
 void slCanCheckCommand();
 
 

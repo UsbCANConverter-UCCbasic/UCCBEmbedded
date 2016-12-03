@@ -131,7 +131,6 @@ int main(void)
 		slcanClearAllFilters();
 
 		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
-//		HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
 		HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 	}
 	// UART RX
@@ -148,11 +147,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1) {
 
+		if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
+		{
+			/* fix for high traffic issue (CAN reception is blocked on high Tx/Rx traffic,
+			 * caused probably by USB/CAN interrupt race, possible to resolve not checking USB busy
+			*/
+			printf("Shame on You lazy programmer!\n"); // TODO do the fix !
+			printf("Shame on You lazy programmer!\n");
+		}
+
 		slCanCheckCommand();
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);
 			canRxFlags.flags.fifo1 = 0;
 			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
+			USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 		}
   /* USER CODE END WHILE */
 
@@ -222,7 +231,6 @@ void SystemClock_Config(void)
 /* CAN init function */
 static void MX_CAN_Init(void)
 {
-
   hcan.Instance = CAN;
   hcan.Init.Prescaler = 3;
   hcan.Init.Mode = CAN_MODE_NORMAL;

@@ -78,7 +78,8 @@ extern UART_HandleTypeDef huart2;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 static void slcanOutputFlush(void)
 {
-	CDC_Transmit_FS(sl_frame, sl_frame_len);
+	while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
+
 	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
 		HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
 	sl_frame_len = 0;
@@ -90,7 +91,7 @@ static void slcanOutputFlush(void)
   * @retval None
   */
 static uint8_t command[LINE_MAXLEN];
-void slCanProccesInput(uint8_t ch)
+int slCanProccesInput(uint8_t ch)
 {
 	static uint8_t line[LINE_MAXLEN];
 	static uint8_t linepos = 0;
@@ -99,10 +100,12 @@ void slCanProccesInput(uint8_t ch)
         line[linepos] = 0;
         memcpy(command,line,linepos);
         linepos = 0;
+        return 1;
     } else if (ch != SLCAN_LR) {
         line[linepos] = ch;
         if (linepos < LINE_MAXLEN - 1) linepos++;
     }
+    return 0;
 }
 
 
@@ -185,8 +188,9 @@ void slCanCheckCommand()
 	uint8_t result = SLCAN_BELL;
 	uint8_t *line = command;
 	if (line[0] == 0)
+	{
 		return ;
-
+	}
     switch (line[0]) {
         case 'S': // Setup with standard CAN bitrates
             if (state == STATE_CONFIG)
@@ -309,7 +313,6 @@ void slCanCheckCommand()
                     else slcanSetOutputChar('z');
                     result = SLCAN_CR;
                 }
-
             }
             break;
         case 'F': // Read status flags
@@ -418,11 +421,9 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 			slcanSetOutputChar('T');
 		}
 		// id
-//		for (i = 0; i != 4; i++)
 		for (i = 4; i != 0; i--)
 		{
 			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i - 1]);
-//			slcanSetOutputAsHex(((uint8_t*)&pRxMsg->ExtId)[i]);
 		}
 	} else
 	{
@@ -437,9 +438,6 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 		//id
 		slCanSendNibble(((uint8_t*)&pRxMsg->StdId)[1] & 0x0F);
 		slcanSetOutputAsHex(((uint8_t*)&pRxMsg->StdId)[0]);
-
-
-
 	}
 	// length
 	slCanSendNibble(pRxMsg->DLC);
