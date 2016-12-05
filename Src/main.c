@@ -151,16 +151,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-
-		if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
-		{
-			/* fix for high traffic issue (CAN reception is blocked on high Tx/Rx traffic,
-			 * caused probably by USB/CAN interrupt race, possible to resolve not checking USB busy
-			*/
-			printf("Shame on You lazy programmer!\n"); // TODO do the fix !
-			printf("Shame on You lazy programmer!\n");
-		}
-
 		slCanCheckCommand();
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);

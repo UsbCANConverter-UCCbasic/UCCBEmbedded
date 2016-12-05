@@ -78,10 +78,18 @@ extern UART_HandleTypeDef huart2;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 static void slcanOutputFlush(void)
 {
-	while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
+
 
 	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
 		HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
+	else {
+		while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
+		while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState)
+		{
+			volatile i;
+			i++;
+		}
+	}
 	sl_frame_len = 0;
 }
 
@@ -141,7 +149,7 @@ static uint8_t parseHex(uint8_t* line, uint8_t len, uint32_t* value) {
 static uint8_t transmitStd(uint8_t* line) {
     uint32_t temp;
     uint8_t idlen;
-
+    HAL_StatusTypeDef tr;
 
     hcan.pTxMsg->RTR = ((line[0] == 'r') || (line[0] == 'R'));
 
@@ -173,7 +181,10 @@ static uint8_t transmitStd(uint8_t* line) {
         }
     }
 
-    return HAL_CAN_Transmit(&hcan, 1000);
+    HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
+    tr = HAL_CAN_Transmit(&hcan, 1000);
+    HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
+    return tr;
 }
 
 
