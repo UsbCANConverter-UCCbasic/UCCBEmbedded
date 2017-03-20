@@ -12,13 +12,13 @@
 
 extern CAN_HandleTypeDef hcan;
 extern void Error_Handler(void);
-
+extern IWDG_HandleTypeDef hiwdg;
 HAL_StatusTypeDef CANInit(void)
 {
 	int i = 0;
     while (HAL_CAN_Init(&hcan) == HAL_TIMEOUT)
     {
-    	if ((i++) == 15) return HAL_BUSY;
+    	HAL_IWDG_Refresh(&hiwdg);
     }
     return HAL_OK;
 }

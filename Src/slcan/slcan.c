@@ -29,6 +29,8 @@ static uint8_t state = STATE_CONFIG;
 static uint8_t timestamping = 0;
 
 
+static uint8_t terminator = SLCAN_CR;
+
 extern CAN_HandleTypeDef hcan;
 
 uint8_t sl_frame[32];
@@ -203,26 +205,35 @@ void slCanCheckCommand()
 		return ;
 	}
     switch (line[0]) {
+    	case 'a':
+    	{
+    		if (terminator == SLCAN_CR)
+    			terminator = SLCAN_LR;
+    		else
+    			terminator = SLCAN_CR;
+    		result = terminator;
+    		break;
+    	}
         case 'S': // Setup with standard CAN bitrates
             if (state == STATE_CONFIG)
             {
                 switch (line[1]) {
-                    case '0': slcanSetCANBaudRate(CAN_BR_10K);  result = SLCAN_CR; break;
-                    case '1': slcanSetCANBaudRate(CAN_BR_20K);  result = SLCAN_CR; break;
-                    case '2': slcanSetCANBaudRate(CAN_BR_50K);  result = SLCAN_CR; break;
-                    case '3': slcanSetCANBaudRate(CAN_BR_100K); result = SLCAN_CR; break;
-                    case '4': slcanSetCANBaudRate(CAN_BR_125K); result = SLCAN_CR; break;
-                    case '5': slcanSetCANBaudRate(CAN_BR_250K); result = SLCAN_CR; break;
-                    case '6': slcanSetCANBaudRate(CAN_BR_500K); result = SLCAN_CR; break;
-                    case '7': slcanSetCANBaudRate(CAN_BR_800K); result = SLCAN_CR; break;
-                    case '8': slcanSetCANBaudRate(CAN_BR_1M);   result = SLCAN_CR; break;
+                    case '0': slcanSetCANBaudRate(CAN_BR_10K);  result = terminator; break;
+                    case '1': slcanSetCANBaudRate(CAN_BR_20K);  result = terminator; break;
+                    case '2': slcanSetCANBaudRate(CAN_BR_50K);  result = terminator; break;
+                    case '3': slcanSetCANBaudRate(CAN_BR_100K); result = terminator; break;
+                    case '4': slcanSetCANBaudRate(CAN_BR_125K); result = terminator; break;
+                    case '5': slcanSetCANBaudRate(CAN_BR_250K); result = terminator; break;
+                    case '6': slcanSetCANBaudRate(CAN_BR_500K); result = terminator; break;
+                    case '7': slcanSetCANBaudRate(CAN_BR_800K); result = terminator; break;
+                    case '8': slcanSetCANBaudRate(CAN_BR_1M);   result = terminator; break;
                 }
             }
             break;
 
         case 'G': // Read given MCP2515 register
         case 'W':
-			result = SLCAN_CR;
+			result = terminator;
 			break;
 
         case 's': // Setup with user defined timing settings for CNF1/CNF2/CNF3
@@ -237,7 +248,7 @@ void slCanCheckCommand()
                 	hcan.Init.BS2 = bs2;
                 	hcan.Init.Prescaler = pre;
                 	CANInit();
-                    result = SLCAN_CR;
+                    result = terminator;
                 }
             }
             break;
@@ -247,7 +258,7 @@ void slCanCheckCommand()
                 slcanSetOutputChar('V');
                 slcanSetOutputAsHex(VERSION_HARDWARE_MAJOR);
                 slcanSetOutputAsHex(VERSION_HARDWARE_MINOR);
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
         case 'v': // Get firmware version
@@ -256,7 +267,7 @@ void slCanCheckCommand()
                 slcanSetOutputChar('v');
                 slcanSetOutputAsHex(VERSION_FIRMWARE_MAJOR);
                 slcanSetOutputAsHex(VERSION_FIRMWARE_MINOR);
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
         case 'N': // Get serial number
@@ -266,7 +277,7 @@ void slCanCheckCommand()
                 slcanSetOutputAsHex((uint8_t)(serialNumber>>8));
                 slcanSetOutputAsHex((uint8_t)(serialNumber>>16));
                 slcanSetOutputAsHex((uint8_t)(serialNumber>>24));
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
         case 'o':
@@ -280,7 +291,7 @@ void slCanCheckCommand()
 					HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
 	//                clock_reset();
 					state = STATE_OPEN;
-					result = SLCAN_CR;
+					result = terminator;
             	}
             }
             break;
@@ -291,7 +302,7 @@ void slCanCheckCommand()
             	HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
             	CANInit();
                 state = STATE_OPEN;
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
         case 'L': // Open CAN channel in listen-only mode
@@ -301,7 +312,7 @@ void slCanCheckCommand()
             	HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
             	CANInit();
                 state = STATE_LISTEN;
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
         case 'C': // Close CAN channel
@@ -310,7 +321,7 @@ void slCanCheckCommand()
             	HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
 //            	todo into slleep
                 state = STATE_CONFIG;
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
         case 'r': // Transmit standard RTR (11 bit) frame
@@ -322,7 +333,7 @@ void slCanCheckCommand()
                 if (transmitStd(line) == HAL_OK) {
                     if (line[0] < 'Z') slcanSetOutputChar('Z');
                     else slcanSetOutputChar('z');
-                    result = SLCAN_CR;
+                    result = terminator;
                 }
             }
             break;
@@ -336,7 +347,7 @@ void slCanCheckCommand()
 //                if (flags & 0x20) status |= 0x80; // bus error
                 slcanSetOutputChar('F');
                 slcanSetOutputAsHex(status);
-                result = SLCAN_CR;
+                result = terminator;
             }
             break;
          case 'Z': // Set time stamping
@@ -344,7 +355,7 @@ void slCanCheckCommand()
                 unsigned long stamping;
                 if (parseHex(&line[1], 1, &stamping)) {
                     timestamping = (stamping != 0);
-                    result = SLCAN_CR;
+                    result = terminator;
                 }
             }
             break;
@@ -353,7 +364,7 @@ void slCanCheckCommand()
             if (line[1] == 'd') // disable all filtering
             {
             	slcanClearAllFilters();
-            	result = SLCAN_CR;
+            	result = terminator;
             	slcanSetOutputChar('M');
             } else
             {
@@ -395,7 +406,7 @@ void slCanCheckCommand()
 
 				slcanSetOutputChar('M');
 				if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) == HAL_OK)
-					result = SLCAN_CR;
+					result = terminator;
             }
             break;
          case 'b':
@@ -461,7 +472,7 @@ uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
 			slcanSetOutputAsHex(pRxMsg->Data[i]);
 		}
 	}
-	slcanSetOutputChar(SLCAN_CR);
+	slcanSetOutputChar(terminator);
 	slcanOutputFlush();
 	return 0;
 }
