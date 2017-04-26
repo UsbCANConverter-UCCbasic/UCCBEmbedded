@@ -151,6 +151,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
+		slcanFlushUSBBuffer();
 		slCanCheckCommand();
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);

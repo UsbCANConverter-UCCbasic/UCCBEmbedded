@@ -15,7 +15,7 @@
 
 
 #define VERSION_FIRMWARE_MAJOR 2
-#define VERSION_FIRMWARE_MINOR 1
+#define VERSION_FIRMWARE_MINOR 2
 
 #define VERSION_HARDWARE_MAJOR 1
 #define VERSION_HARDWARE_MINOR 1
@@ -32,6 +32,7 @@
 
 //ex TZ12020506
 
+int slcanFlushUSBBuffer();
 uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
 int slCanProccesInput(uint8_t ch);
 void slCanCheckCommand();

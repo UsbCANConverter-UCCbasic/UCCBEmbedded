@@ -78,6 +78,38 @@ extern UART_HandleTypeDef huart2;
   * @retval None
   */
 extern USBD_HandleTypeDef hUsbDeviceFS;
+
+
+// frame buffer
+#define FRAME_BUFFER_SIZE 1024
+uint8_t frameBuffer[FRAME_BUFFER_SIZE];
+uint32_t dataToSend = 0;
+
+int slcanFlushUSBBuffer()
+{
+	if (dataToSend != 0)
+	{
+		if (CDC_Transmit_FS(frameBuffer, dataToSend) == USBD_OK)
+		{
+			dataToSend = 0;
+			return 0;
+		}
+	}
+	return -1;
+}
+
+static int addToUSBBuffer(uint8_t * pointer, uint8_t len)
+{
+	if ((dataToSend + len) >= FRAME_BUFFER_SIZE)
+		return -1; // buffer overflow
+
+	memcpy(&frameBuffer[dataToSend], pointer, len);
+	dataToSend += len;
+	return 0;
+}
+
+
+
 static void slcanOutputFlush(void)
 {
 
@@ -85,12 +117,13 @@ static void slcanOutputFlush(void)
 	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
 		HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
 	else {
-		while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
-		while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState)
-		{
-			volatile i;
-			i++;
-		}
+		addToUSBBuffer(sl_frame, sl_frame_len);
+//		while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
+//		while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState)
+//		{
+//			volatile i;
+//			i++;
+//		}
 	}
 	sl_frame_len = 0;
 }
