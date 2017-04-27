@@ -32,6 +32,7 @@
 
 //ex TZ12020506
 
+void slcanClose();
 int slcanFlushUSBBuffer();
 uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
 int slCanProccesInput(uint8_t ch);

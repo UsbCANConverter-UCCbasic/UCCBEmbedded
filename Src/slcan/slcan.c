@@ -85,6 +85,14 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 uint8_t frameBuffer[FRAME_BUFFER_SIZE];
 uint32_t dataToSend = 0;
 
+void slcanClose()
+{
+	HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
+	dataToSend = 0;
+//            	todo into slleep
+	state = STATE_CONFIG;
+}
+
 int slcanFlushUSBBuffer()
 {
 	if (dataToSend != 0)
@@ -352,6 +360,7 @@ void slCanCheckCommand()
 //            if (state != STATE_CONFIG)
             {
             	HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
+            	dataToSend = 0;
 //            	todo into slleep
                 state = STATE_CONFIG;
                 result = terminator;
