@@ -71,8 +71,8 @@
 /* USER CODE BEGIN PRIVATE_DEFINES */
 /* Define size for the receive and transmit buffer over CDC */
 /* It's up to user to redefine and/or remove those define */
-#define APP_RX_DATA_SIZE  32
-#define APP_TX_DATA_SIZE  32
+#define APP_RX_DATA_SIZE  128
+#define APP_TX_DATA_SIZE  128
 /* USER CODE END PRIVATE_DEFINES */
 /**
   * @}
@@ -230,7 +230,7 @@ static int8_t CDC_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
     break;
 
   case CDC_SET_CONTROL_LINE_STATE:
-	  slcanClose();//ll
+	  slcanClose();
     break;
 
   case CDC_SEND_BREAK:
@@ -266,14 +266,11 @@ static int8_t CDC_Receive_FS (uint8_t* Buf, uint32_t *Len)
  uint32_t i;
  for (i =0; i != *Len; i++)
  {
-	 if (slCanProccesInput(Buf[i]) != 1)
-	 {
-		 USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-	 }
+	 slCanProccesInput(Buf[i]);
  }
 
  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-// USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+ USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
  return (USBD_OK);
   /* USER CODE END 6 */ 
