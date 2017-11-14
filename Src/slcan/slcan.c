@@ -191,7 +191,13 @@ static uint8_t transmitStd(uint8_t* line) {
     uint8_t idlen;
     HAL_StatusTypeDef tr;
 
-    hcan.pTxMsg->RTR = ((line[0] == 'r') || (line[0] == 'R'));
+    if ((line[0] == 'r') || (line[0] == 'R'))
+    {
+    	hcan.pTxMsg->RTR = CAN_RTR_REMOTE;
+    } else
+    {
+    	hcan.pTxMsg->RTR = CAN_RTR_DATA;
+    }
 
     // upper case -> extended identifier
     if (line[0] < 'Z') {
@@ -211,7 +217,7 @@ static uint8_t transmitStd(uint8_t* line) {
     if (!parseHex(&line[1 + idlen], 1, &temp)) return 0;
     hcan.pTxMsg->DLC = temp;
 
-    if (!hcan.pTxMsg->RTR) {
+    if (hcan.pTxMsg->RTR == CAN_RTR_DATA) {
     	uint8_t i;
         uint8_t length = hcan.pTxMsg->DLC;
         if (length > 8) length = 8;
