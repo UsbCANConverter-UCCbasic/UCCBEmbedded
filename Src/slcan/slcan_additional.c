@@ -123,6 +123,10 @@ void slcanSetCANBaudRate(uint8_t br)
 		case CAN_BR_10K:
 			hcan.Init.Prescaler = 300;
 		break;
+		case CAN_BR_83K:
+			hcan.Init.Prescaler = 36;
+		break;
+
 		default:
 			break;
 	}

@@ -271,6 +271,8 @@ void slCanCheckCommand()
                     case '6': slcanSetCANBaudRate(CAN_BR_500K); result = terminator; break;
                     case '7': slcanSetCANBaudRate(CAN_BR_800K); result = terminator; break;
                     case '8': slcanSetCANBaudRate(CAN_BR_1M);   result = terminator; break;
+                    case '9': slcanSetCANBaudRate(CAN_BR_83K);   result = terminator; break;
+
                 }
             }
             break;
