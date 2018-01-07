@@ -158,6 +158,9 @@ int main(void)
 			canRxFlags.flags.fifo1 = 0;
 			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 			USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+			if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // to avoid rx buffer corrupiton due to UART noise
+																 // reception only enabled when USB is disconnected
+				HAL_UART_Receive_IT(&huart2, &Uart2RxFifo, UART_RX_FIFO_SIZE);
 		}
   /* USER CODE END WHILE */
 
