@@ -15,7 +15,6 @@ extern void Error_Handler(void);
 extern IWDG_HandleTypeDef hiwdg;
 HAL_StatusTypeDef CANInit(void)
 {
-	int i = 0;
     while (HAL_CAN_Init(&hcan) == HAL_TIMEOUT)
     {
     	HAL_IWDG_Refresh(&hiwdg);

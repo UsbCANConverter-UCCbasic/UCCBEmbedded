@@ -13,9 +13,10 @@
 #include "stm32f0xx_hal_can.h"
 
 
+#define SLCAN_BUFFERS_COUNT 3
 
-#define VERSION_FIRMWARE_MAJOR 2
-#define VERSION_FIRMWARE_MINOR 5
+#define VERSION_FIRMWARE_MAJOR 3
+#define VERSION_FIRMWARE_MINOR 0
 
 #define VERSION_HARDWARE_MAJOR 1
 #define VERSION_HARDWARE_MINOR 1
@@ -31,13 +32,17 @@
 #define CAN_BR_1M 8
 #define CAN_BR_83K 36
 
+#define LINE_MAXLEN 100
+
 //ex TZ12020506
 
 void slcanClose();
 //int slcanFlushUSBBuffer();
 uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
 int slCanProccesInput(uint8_t ch);
-void slCanCheckCommand();
+void slCanCheckCommand(uint8_t *line);
 
+extern uint8_t command[SLCAN_BUFFERS_COUNT][LINE_MAXLEN];
+extern uint8_t lastInputBuffer;
 
 #endif /* SLCAN_PORT_H_ */

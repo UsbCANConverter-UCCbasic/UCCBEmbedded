@@ -98,15 +98,17 @@ typedef struct tcanRxFlags {
 
 volatile tcanRx canRxFlags;
 void bootloaderSwitcher();
-#define TYPE_ID 0x160000
+#define TYPE_ID 0x16
 volatile int32_t serialNumber;
 /* USER CODE END 0 */
+
+const uint32_t *uid = (uint32_t *)(UID_BASE + 4);
 
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	serialNumber = TYPE_ID | ((DBGMCU->IDCODE) & 0xFFFFFFFF);
+	serialNumber = TYPE_ID | ((*uid) & 0xFFFFFF00);
 	bootloaderSwitcher();
   /* USER CODE END 1 */
 
@@ -151,8 +153,13 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-//		slcanFlushUSBBuffer();
-		slCanCheckCommand();
+		//slcanFlushUSBBuffer();
+		for (uint8_t i = 0; i < SLCAN_BUFFERS_COUNT; i++)
+		{
+			// check all buffers starting from last modified
+			slCanCheckCommand(command[(lastInputBuffer - 1 + i) % SLCAN_BUFFERS_COUNT]);
+		}
+
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);
 			canRxFlags.flags.fifo1 = 0;

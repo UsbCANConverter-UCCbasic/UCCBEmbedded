@@ -12,7 +12,6 @@
 #include "slcan_additional.h"
 #include "usbd_cdc_if.h"
 
-#define LINE_MAXLEN 100
 #define SLCAN_BELL 7
 #define SLCAN_CR 13
 #define SLCAN_LR 10
@@ -81,8 +80,8 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 
 // frame buffer
-#define FRAME_BUFFER_SIZE 1024
-uint8_t frameBuffer[FRAME_BUFFER_SIZE];
+//#define FRAME_BUFFER_SIZE 1024
+//uint8_t frameBuffer[FRAME_BUFFER_SIZE];
 uint32_t dataToSend = 0;
 
 void slcanClose()
@@ -138,7 +137,9 @@ static void slcanOutputFlush(void)
   * @param  ch - data to add
   * @retval None
   */
-static uint8_t command[LINE_MAXLEN];
+uint8_t command[SLCAN_BUFFERS_COUNT][LINE_MAXLEN] = {0};
+uint8_t lastInputBuffer  = 0;
+
 int slCanProccesInput(uint8_t ch)
 {
 	static uint8_t line[LINE_MAXLEN];
@@ -146,7 +147,9 @@ int slCanProccesInput(uint8_t ch)
 
     if (ch == SLCAN_CR) {
         line[linepos] = 0;
-        memcpy(command,line,linepos);
+        memcpy(command[lastInputBuffer % SLCAN_BUFFERS_COUNT],line,linepos);
+		lastInputBuffer ++;
+
         linepos = 0;
         return 1;
     } else if (ch != SLCAN_LR) {
@@ -240,10 +243,9 @@ static uint8_t transmitStd(uint8_t* line) {
  * @retval None
  */
 void RebootToBootloader();
-void slCanCheckCommand()
+void slCanCheckCommand(uint8_t *line)
 {
 	uint8_t result = SLCAN_BELL;
-	uint8_t *line = command;
 	if (line[0] == 0)
 	{
 		return ;
@@ -457,8 +459,13 @@ void slCanCheckCommand()
             }
             break;
          case 'b':
-        	 line[0] = 0;
-        	 RebootToBootloader();
+        	 if ((line[1] == 'o') && (line[2] == 'o') && (line[3] == 't')){
+        		 line[0] = 0;
+        		 line[1] = 0;
+        		 line[2] = 0;
+        		 line[3] = 0;
+        		 RebootToBootloader();
+        	 }
         	 break;
 
     }
