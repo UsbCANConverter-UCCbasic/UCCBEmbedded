@@ -82,12 +82,12 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 // frame buffer
 //#define FRAME_BUFFER_SIZE 1024
 //uint8_t frameBuffer[FRAME_BUFFER_SIZE];
-uint32_t dataToSend = 0;
+//uint32_t dataToSend = 0;
 
 void slcanClose()
 {
 	HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
-	dataToSend = 0;
+//	dataToSend = 0;
 //            	todo into slleep
 	state = STATE_CONFIG;
 }
@@ -137,8 +137,7 @@ static void slcanOutputFlush(void)
   * @param  ch - data to add
   * @retval None
   */
-uint8_t command[SLCAN_BUFFERS_COUNT][LINE_MAXLEN] = {0};
-uint8_t lastInputBuffer  = 0;
+uint8_t command[LINE_MAXLEN] = {0};
 
 int slCanProccesInput(uint8_t ch)
 {
@@ -147,8 +146,7 @@ int slCanProccesInput(uint8_t ch)
 
     if (ch == SLCAN_CR) {
         line[linepos] = 0;
-        memcpy(command[lastInputBuffer % SLCAN_BUFFERS_COUNT],line,linepos);
-		lastInputBuffer ++;
+        memcpy(command,line,linepos);
 
         linepos = 0;
         return 1;
@@ -231,7 +229,7 @@ static uint8_t transmitStd(uint8_t* line) {
     }
 
     HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
-    tr = HAL_CAN_Transmit(&hcan, 1000);
+    tr = HAL_CAN_Transmit(&hcan, 100);
     HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
     return tr;
 }
@@ -367,7 +365,7 @@ void slCanCheckCommand(uint8_t *line)
 //            if (state != STATE_CONFIG)
             {
             	HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
-            	dataToSend = 0;
+//            	dataToSend = 0;
 //            	todo into slleep
                 state = STATE_CONFIG;
                 result = terminator;

@@ -11,7 +11,6 @@
 #include "slcan_additional.h"
 
 extern CAN_HandleTypeDef hcan;
-extern void Error_Handler(void);
 extern IWDG_HandleTypeDef hiwdg;
 HAL_StatusTypeDef CANInit(void)
 {

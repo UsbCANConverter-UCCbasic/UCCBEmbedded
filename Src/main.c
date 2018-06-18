@@ -1,10 +1,16 @@
+
 /**
   ******************************************************************************
-  * File Name          : main.c
-  * Description        : Main program body
+  * @file           : main.c
+  * @brief          : Main program body
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2016 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -65,7 +71,6 @@ UART_HandleTypeDef huart2;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void Error_Handler(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN_Init(void);
 static void MX_USART2_UART_Init(void);
@@ -100,15 +105,18 @@ volatile tcanRx canRxFlags;
 void bootloaderSwitcher();
 #define TYPE_ID 0x16
 volatile int32_t serialNumber;
+const uint32_t *uid = (uint32_t *)(UID_BASE + 4);
 /* USER CODE END 0 */
 
-const uint32_t *uid = (uint32_t *)(UID_BASE + 4);
-
+/**
+  * @brief  The application entry point.
+  *
+  * @retval None
+  */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
-	serialNumber = TYPE_ID | ((*uid) & 0xFFFFFF00);
+	serialNumber = TYPE_ID | (((*uid) << 8) & 0xFFFFFF00);
 	bootloaderSwitcher();
   /* USER CODE END 1 */
 
@@ -117,8 +125,16 @@ int main(void)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
   /* Configure the system clock */
   SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -126,7 +142,6 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USB_DEVICE_Init();
   MX_IWDG_Init();
-
   /* USER CODE BEGIN 2 */
 
 	hcan.pTxMsg = &CanTxBuffer;
@@ -137,13 +152,13 @@ int main(void)
 	{
 		slcanClearAllFilters();
 
-		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 1, 0);
+		HAL_NVIC_SetPriority(CEC_CAN_IRQn, 2, 2);
 		HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 	}
 	// UART RX
 	{
 		HAL_UART_Receive_IT(&huart2, &Uart2RxFifo, UART_RX_FIFO_SIZE);
-		HAL_NVIC_SetPriority(USART2_IRQn, 2, 0);
+		HAL_NVIC_SetPriority(USART2_IRQn, 3, 3);
 		NVIC_EnableIRQ(USART2_IRQn);
 	}
 	/* Enable USART1 global interrupt */
@@ -153,19 +168,22 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		//slcanFlushUSBBuffer();
-		for (uint8_t i = 0; i < SLCAN_BUFFERS_COUNT; i++)
-		{
-			// check all buffers starting from last modified
-			slCanCheckCommand(command[(lastInputBuffer - 1 + i) % SLCAN_BUFFERS_COUNT]);
-		}
-
+		slCanCheckCommand(command);
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);
 			canRxFlags.flags.fifo1 = 0;
 			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 			USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 		}
+//		if (HAL_IS_BIT_SET((&hcan)->Instance->ESR, CAN_ESR_BOFF))
+//		{
+//			MX_CAN_Init();
+//			hcan.pTxMsg = &CanTxBuffer;
+//			hcan.pRxMsg = &CanRxBuffer;
+//
+//			HAL_NVIC_SetPriority(CEC_CAN_IRQn, 2, 2);
+//			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
+//		}
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -175,8 +193,15 @@ int main(void)
 
 }
 
-/** System Clock Configuration
-*/
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+	HAL_CAN_Receive_IT(hcan, CAN_FIFO0);
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
 
@@ -192,7 +217,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
     /**Initializes the CPU, AHB and APB busses clocks 
@@ -205,7 +230,7 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
@@ -213,7 +238,7 @@ void SystemClock_Config(void)
 
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
     /**Configure the Systick interrupt time 
@@ -239,12 +264,15 @@ static void MX_CAN_Init(void)
   hcan.Init.BS1 = CAN_BS1_11TQ;
   hcan.Init.BS2 = CAN_BS2_4TQ;
   hcan.Init.TTCM = DISABLE;
-  hcan.Init.ABOM = DISABLE;
+  hcan.Init.ABOM = ENABLE;
   hcan.Init.AWUM = DISABLE;
   hcan.Init.NART = DISABLE;
   hcan.Init.RFLM = DISABLE;
   hcan.Init.TXFP = DISABLE;
-  while (CANInit() != HAL_OK);
+  if (HAL_CAN_Init(&hcan) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
 }
 
@@ -253,12 +281,12 @@ static void MX_IWDG_Init(void)
 {
 
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_16;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
   hiwdg.Init.Window = 4095;
   hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
 }
@@ -279,7 +307,7 @@ static void MX_USART2_UART_Init(void)
   huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
-    Error_Handler();
+    _Error_Handler(__FILE__, __LINE__);
   }
 
 }
@@ -330,45 +358,43 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart) {
 
 /**
   * @brief  This function is executed in case of error occurrence.
-  * @param  None
+  * @param  file: The file name as string.
+  * @param  line: The line in file as a number.
   * @retval None
   */
-void Error_Handler(void)
+void _Error_Handler(char *file, int line)
 {
-  /* USER CODE BEGIN Error_Handler */
+  /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-  while(1) 
+  while(1)
   {
   }
-  /* USER CODE END Error_Handler */ 
+  /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
-
+#ifdef  USE_FULL_ASSERT
 /**
-   * @brief Reports the name of the source file and the source line number
-   * where the assert_param error has occurred.
-   * @param file: pointer to the source file name
-   * @param line: assert_param error line source number
-   * @retval None
-   */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t* file, uint32_t line)
-{
+{ 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
-
 }
-
-#endif
-
-/**
-  * @}
-  */ 
+#endif /* USE_FULL_ASSERT */
 
 /**
   * @}
-*/ 
+  */
+
+/**
+  * @}
+  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1,11 +1,16 @@
 /**
   ******************************************************************************
-  * @file           : USB_DEVICE  
-  * @version        : v1.0_Cube
-  * @brief          : This file implements the USB Device 
+  * @file           : usb_device.c
+  * @version        : v2.0_Cube
+  * @brief          : This file implements the USB Device
   ******************************************************************************
+  * This notice applies to any and all portions of this file
+  * that are not between comment pairs USER CODE BEGIN and
+  * USER CODE END. Other portions of this file, whether 
+  * inserted by the user or by software development tools
+  * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2016 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -40,7 +45,7 @@
   * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-*/
+  */
 
 /* Includes ------------------------------------------------------------------*/
 
@@ -50,13 +55,48 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
 
-/* USB Device Core handle declaration */
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE END PV */
+
+/* USER CODE BEGIN PFP */
+/* Private function prototypes -----------------------------------------------*/
+
+/* USER CODE END PFP */
+
+/* USB Device Core handle declaration. */
 USBD_HandleTypeDef hUsbDeviceFS;
 
-/* init function */				        
+/*
+ * -- Insert your variables declaration here --
+ */
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+/*
+ * -- Insert your external function declaration here --
+ */
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
+
+/**
+  * Init USB device Library, add supported class and start the library
+  * @retval None
+  */
 void MX_USB_DEVICE_Init(void)
 {
-  /* Init Device Library,Add Supported Class and Start the library*/
+  /* USER CODE BEGIN USB_DEVICE_Init_PreTreatment */
+  
+  /* USER CODE END USB_DEVICE_Init_PreTreatment */
+  
+  /* Init Device Library, add supported class and start the library. */
   USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
 
   USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC);
@@ -65,7 +105,11 @@ void MX_USB_DEVICE_Init(void)
 
   USBD_Start(&hUsbDeviceFS);
 
+  /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
+  
+  /* USER CODE END USB_DEVICE_Init_PostTreatment */
 }
+
 /**
   * @}
   */
