@@ -14,7 +14,7 @@
 
 
 #define VERSION_FIRMWARE_MAJOR 3
-#define VERSION_FIRMWARE_MINOR 2
+#define VERSION_FIRMWARE_MINOR 3
 
 #define VERSION_HARDWARE_MAJOR 1
 #define VERSION_HARDWARE_MINOR 1
@@ -30,11 +30,13 @@
 #define CAN_BR_1M 8
 #define CAN_BR_83K 36
 
-#define LINE_MAXLEN 100
+#define BUFFER_SIZE 128
+#define LINE_MAXLEN 64
 
 void slcanClose();
 uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
-int slCanProccesInput(uint8_t ch);
+void slCanBufferInput(uint8_t ch);
+uint8_t slCanProcessBuffer();
 void slCanCheckCommand(uint8_t *line);
 
 extern uint8_t command[LINE_MAXLEN];
