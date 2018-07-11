@@ -138,25 +138,56 @@ static void slcanOutputFlush(void)
   * @retval None
   */
 uint8_t command[LINE_MAXLEN] = {0};
+uint8_t buffer[BUFFER_SIZE] = {0};
+uint16_t buffer_head = 0;
+uint16_t buffer_tail = 0;
 
-int slCanProccesInput(uint8_t ch)
+void slCanBufferInput(uint8_t ch)
 {
-	static uint8_t line[LINE_MAXLEN];
-	static uint8_t linepos = 0;
-
-    if (ch == SLCAN_CR) {
-        line[linepos] = 0;
-        memcpy(command,line,linepos);
-
-        linepos = 0;
-        return 1;
-    } else if (ch != SLCAN_LR) {
-        line[linepos] = ch;
-        if (linepos < LINE_MAXLEN - 1) linepos++;
+    if(ch == SLCAN_LR)
+    {
+        return;
     }
-    return 0;
+
+    buffer[buffer_head] = ch;
+    buffer_head++;
+    if(buffer_head == BUFFER_SIZE)
+    {
+        buffer_head = 0;
+    }
 }
 
+uint8_t slCanProcessBuffer()
+{
+    uint16_t len;
+    uint16_t i;
+
+    if(buffer_head >= buffer_tail)
+    {
+        len = buffer_head - buffer_tail;
+    }
+    else
+    {
+        len = LINE_MAXLEN - (buffer_tail - buffer_head);
+    }
+
+    for(i=0; i<len; i++)
+    {
+        command[i] = buffer[(buffer_tail+i) % BUFFER_SIZE];
+        if(command[i] == SLCAN_CR)
+        {
+            command[i] = '\0';
+            buffer_tail += (i+1);
+            if(buffer_tail == BUFFER_SIZE)
+            {
+                buffer_tail = 0;
+            }
+            return 1;
+        }
+    }
+    
+    return 0;
+}
 
 /**
   * @brief  Parse hex value of given string
