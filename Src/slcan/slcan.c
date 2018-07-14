@@ -16,12 +16,6 @@
 #define SLCAN_CR 13
 #define SLCAN_LR 10
 
-#define STATE_CONFIG 0
-#define STATE_LISTEN 1
-#define STATE_OPEN 2
-
-
-
 extern volatile int32_t serialNumber;
 // internal slcan_interface state
 static uint8_t state = STATE_CONFIG;
@@ -33,7 +27,7 @@ static uint8_t terminator = SLCAN_CR;
 extern CAN_HandleTypeDef hcan;
 
 uint8_t sl_frame[32];
-uint8_t sl_frame_len=0;
+volatile uint8_t sl_frame_len=0;
 /**
   * @brief  Adds data to send buffer
   * @param  c - data to add
@@ -92,44 +86,21 @@ void slcanClose()
 	state = STATE_CONFIG;
 }
 
-//int slcanFlushUSBBuffer()
-//{
-//	if (dataToSend != 0)
-//	{
-//		if (CDC_Transmit_FS(frameBuffer, dataToSend) == USBD_OK)
-//		{
-//			dataToSend = 0;
-//			return 0;
-//		}
-//	}
-//	return -1;
-//}
-//
-//static int addToUSBBuffer(uint8_t * pointer, uint8_t len)
-//{
-//	if ((dataToSend + len) >= FRAME_BUFFER_SIZE)
-//		return -1; // buffer overflow
-//
-//	memcpy(&frameBuffer[dataToSend], pointer, len);
-//	dataToSend += len;
-//	return 0;
-//}
-
-
-
-static void slcanOutputFlush(void)
+void slcanOutputFlush(void)
 {
+	if (sl_frame_len > 0)
+	{
+		if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
+			HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
+		else {
+	//		addToUSBBuffer(sl_frame, sl_frame_len);
+			while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState){;} //should change by hardware
+			while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
 
-
-	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
-		HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
-	else {
-//		addToUSBBuffer(sl_frame, sl_frame_len);
-		while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState){;} //should change by hardware
-		while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
-
+		}
+		sl_frame_len = 0;
 	}
-	sl_frame_len = 0;
+
 }
 
 /**
@@ -229,24 +200,23 @@ static uint8_t transmitStd(uint8_t* line) {
     }
 
     HAL_NVIC_DisableIRQ(CEC_CAN_IRQn);
-    tr = HAL_CAN_Transmit(&hcan, 100);
+    tr = HAL_CAN_Transmit(&hcan, 0);
     HAL_NVIC_EnableIRQ(CEC_CAN_IRQn);
     return tr;
 }
 
-
+void RebootToBootloader();
 /**
  * @brief  Parse given command line
  * @param  line Line string to parse
  * @retval None
  */
-void RebootToBootloader();
-void slCanCheckCommand(uint8_t *line)
+uint8_t slCanCheckCommand(uint8_t *line)
 {
 	uint8_t result = SLCAN_BELL;
 	if (line[0] == 0)
 	{
-		return ;
+		return 0;
 	}
     switch (line[0]) {
     	case 'a':
@@ -470,9 +440,18 @@ void slCanCheckCommand(uint8_t *line)
 
    line[0] = 0;
    slcanSetOutputChar(result);
-   slcanOutputFlush();
+   return 1;
 }
 
+/**
+ * @brief  get slcan state
+ * @param  none
+ * @retval slcan state
+ */
+uint8_t slcan_getState()
+{
+	return state;
+}
 
 /**
  * @brief  reciving CAN frame

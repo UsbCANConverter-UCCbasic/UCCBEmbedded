@@ -169,21 +169,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1) {
 		slCanCheckCommand(command);
+		slcanOutputFlush();
 		if (canRxFlags.flags.byte != 0) {
 			slcanReciveCanFrame(hcan.pRxMsg);
 			canRxFlags.flags.fifo1 = 0;
 			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 			USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 		}
-//		if (HAL_IS_BIT_SET((&hcan)->Instance->ESR, CAN_ESR_BOFF))
-//		{
-//			MX_CAN_Init();
-//			hcan.pTxMsg = &CanTxBuffer;
-//			hcan.pRxMsg = &CanRxBuffer;
-//
-//			HAL_NVIC_SetPriority(CEC_CAN_IRQn, 2, 2);
-//			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
-//		}
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
