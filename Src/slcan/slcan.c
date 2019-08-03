@@ -90,13 +90,12 @@ void slcanOutputFlush(void)
 {
 	if (sl_frame_len > 0)
 	{
-		if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
-			HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
-		else {
-	//		addToUSBBuffer(sl_frame, sl_frame_len);
+//		if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) // use auxiliary uart only if usb not connected
+//			HAL_UART_Transmit(&huart2,sl_frame,sl_frame_len,100); //ll todo figure out time
+//		else
+		{
 			while (((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState){;} //should change by hardware
 			while (CDC_Transmit_FS(sl_frame, sl_frame_len) != USBD_OK);
-
 		}
 		sl_frame_len = 0;
 	}

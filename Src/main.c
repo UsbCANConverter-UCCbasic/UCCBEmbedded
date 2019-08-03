@@ -139,7 +139,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  MX_USART2_UART_Init();
+//  MX_USART2_UART_Init();
   MX_USB_DEVICE_Init();
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
@@ -157,9 +157,9 @@ int main(void)
 	}
 	// UART RX
 	{
-		HAL_UART_Receive_IT(&huart2, &Uart2RxFifo, UART_RX_FIFO_SIZE);
-		HAL_NVIC_SetPriority(USART2_IRQn, 3, 3);
-		NVIC_EnableIRQ(USART2_IRQn);
+//		HAL_UART_Receive_IT(&huart2, &Uart2RxFifo, UART_RX_FIFO_SIZE);
+//		HAL_NVIC_SetPriority(USART2_IRQn, 3, 3);
+//		NVIC_EnableIRQ(USART2_IRQn);
 	}
 	/* Enable USART1 global interrupt */
 
@@ -174,7 +174,6 @@ int main(void)
 			slcanReciveCanFrame(hcan.pRxMsg);
 			canRxFlags.flags.fifo1 = 0;
 			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
-			USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 		}
   /* USER CODE END WHILE */
 
@@ -257,7 +256,7 @@ static void MX_CAN_Init(void)
   hcan.Init.BS2 = CAN_BS2_4TQ;
   hcan.Init.TTCM = DISABLE;
   hcan.Init.ABOM = ENABLE;
-  hcan.Init.AWUM = DISABLE;
+  hcan.Init.AWUM = ENABLE;
   hcan.Init.NART = DISABLE;
   hcan.Init.RFLM = DISABLE;
   hcan.Init.TXFP = DISABLE;
@@ -341,9 +340,9 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart) {
-	slCanProccesInput(Uart2RxFifo);
-	__HAL_UART_FLUSH_DRREGISTER(huart);
-	HAL_UART_Receive_IT(huart, &Uart2RxFifo, UART_RX_FIFO_SIZE);
+//	slCanProccesInput(Uart2RxFifo);
+//	__HAL_UART_FLUSH_DRREGISTER(huart);
+//	HAL_UART_Receive_IT(huart, &Uart2RxFifo, UART_RX_FIFO_SIZE);
 }
 
 /* USER CODE END 4 */
