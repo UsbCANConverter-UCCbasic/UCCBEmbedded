@@ -622,24 +622,24 @@ HAL_StatusTypeDef HAL_CAN_Transmit(CAN_HandleTypeDef* hcan, uint32_t Timeout)
     tickstart = HAL_GetTick();   
   
     /* Check End of transmission flag */
-    while(!(__HAL_CAN_TRANSMIT_STATUS(hcan, transmitmailbox)))
-    {
-      /* Check for the Timeout */
-      if(Timeout != HAL_MAX_DELAY)
-      {
-        if((Timeout == 0U) || ((HAL_GetTick()-tickstart) > Timeout))
-        {
-          hcan->State = HAL_CAN_STATE_TIMEOUT;
-
-          /* Cancel transmission */
-          __HAL_CAN_CANCEL_TRANSMIT(hcan, transmitmailbox);
-
-          /* Process unlocked */
-          __HAL_UNLOCK(hcan);
-          return HAL_TIMEOUT;
-        }
-      }
-    }
+//    while(!(__HAL_CAN_TRANSMIT_STATUS(hcan, transmitmailbox)))
+//    {
+//      /* Check for the Timeout */
+//      if(Timeout != HAL_MAX_DELAY)
+//      {
+//        if((Timeout == 0U) || ((HAL_GetTick()-tickstart) > Timeout))
+//        {
+//          hcan->State = HAL_CAN_STATE_TIMEOUT;
+//
+//          /* Cancel transmission */
+//          __HAL_CAN_CANCEL_TRANSMIT(hcan, transmitmailbox);
+//
+//          /* Process unlocked */
+//          __HAL_UNLOCK(hcan);
+//          return HAL_TIMEOUT;
+//        }
+//      }
+//    }
 
     /* Change CAN state */
     switch(hcan->State)
