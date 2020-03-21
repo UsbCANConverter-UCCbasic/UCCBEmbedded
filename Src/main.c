@@ -171,7 +171,7 @@ int main(void)
 		slCanCheckCommand(command);
 		slcanOutputFlush();
 		if (canRxFlags.flags.byte != 0) {
-			slcanReciveCanFrame(hcan.pRxMsg);
+			slcanReceiveCanFrame(hcan.pRxMsg);
 			canRxFlags.flags.fifo1 = 0;
 			HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 		}
@@ -340,7 +340,7 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef * huart) {
-//	slCanProccesInput(Uart2RxFifo);
+//	slCanProcessInput(Uart2RxFifo);
 //	__HAL_UART_FLUSH_DRREGISTER(huart);
 //	HAL_UART_Receive_IT(huart, &Uart2RxFifo, UART_RX_FIFO_SIZE);
 }

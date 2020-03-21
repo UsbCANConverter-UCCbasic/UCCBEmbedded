@@ -109,7 +109,7 @@ void slcanOutputFlush(void)
   */
 uint8_t command[LINE_MAXLEN] = {0};
 
-int slCanProccesInput(uint8_t ch)
+int slCanProcessInput(uint8_t ch)
 {
 	static uint8_t line[LINE_MAXLEN];
 	static uint8_t linepos = 0;
@@ -458,7 +458,7 @@ uint8_t slcan_getState()
  * 			step Current step
  * @retval Next character to print out
  */
-uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg)
+uint8_t slcanReceiveCanFrame(CanRxMsgTypeDef *pRxMsg)
 {
 	uint8_t i;
 

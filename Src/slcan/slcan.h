@@ -38,8 +38,8 @@
 
 void slcanOutputFlush(void);
 void slcanClose();
-uint8_t slcanReciveCanFrame(CanRxMsgTypeDef *pRxMsg);
-int slCanProccesInput(uint8_t ch);
+uint8_t slcanReceiveCanFrame(CanRxMsgTypeDef *pRxMsg);
+int slCanProcessInput(uint8_t ch);
 uint8_t slCanCheckCommand(uint8_t *line);
 uint8_t slcan_getState(void);
 
