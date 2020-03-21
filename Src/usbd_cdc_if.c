@@ -291,13 +291,13 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
  {
 	 if (slcan_getState() == STATE_CONFIG)  /* for config state proceed multiple commands in interrupt*/
 	 {
-		 if (slCanProccesInput(Buf[i]))
+		 if (slCanProcessInput(Buf[i]))
 		 {
 			 slCanCheckCommand(command);
 		 }
 	 } else  /* for open state proceed is done in interrupt */
 	 {
-		 slCanProccesInput(Buf[i]);
+		 slCanProcessInput(Buf[i]);
 	 }
  }
 
